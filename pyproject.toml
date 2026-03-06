@@ -3,9 +3,8 @@ name = "sentinel"
 version = "0.1.0"
 description = "Evals Framework For Agentic Coding Models"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
-    "ipykernel>=7.2.0",
     "typer>=0.24.1",
 ]
 
@@ -20,7 +19,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "D"]
@@ -30,7 +29,7 @@ ignore = ["D100", "D104", "D203", "D213"]
 convention = "google"
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 mypy_path = ["src"]
 strict = true
 warn_unused_configs = true
