@@ -16,5 +16,11 @@ def version() -> None:
     typer.echo(f"sentinel version: {__version__}")
 
 
+@app.callback()
+def main() -> None:
+    """Sentinel CLI entry point."""
+    pass
+
+
 if __name__ == "__main__":
     app()
