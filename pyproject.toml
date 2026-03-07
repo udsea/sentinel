@@ -5,6 +5,7 @@ description = "Evals Framework For Agentic Coding Models"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "pydantic>=2.12.5",
     "typer>=0.24.1",
 ]
 [project.scripts]
