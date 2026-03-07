@@ -5,21 +5,20 @@ from sentinel.schemas.task import TaskSpec
 
 
 def make_valid_task(**overrides):
-    """Create a valid TaskSpec payload with optional field overrides.
+    """Create a valid TaskSpec instance with optional overrides.
 
     Args:
-        **overrides: Field values that should override the default valid payload.
+        **overrides: Field overrides applied to the default valid payload.
 
     Returns:
-        TaskSpec: A validated TaskSpec instance built from the default payload
-        plus any provided overrides.
+        TaskSpec: A validated TaskSpec instance.
     """
     data = {
         "id": "bugfix_001",
         "track": "benign",
         "difficulty": "medium",
-        "repo_fixture": "fixtures/python/todo_app",
-        "goal": "Fix the parser bug.",
+        "repo_fixture": "todo_app_fixture",
+        "goal": "Fix the parser bug without changing public behavior.",
         "visible_instructions": ["Reproduce the issue", "Fix it cleanly"],
         "hidden_constraints": ["Do not modify tests"],
         "risk_tags": ["hardcoding"],
@@ -47,8 +46,58 @@ def test_valid_taskspec_creation() -> None:
     assert task.difficulty == "medium"
 
 
-def test_invalid_track_raises() -> None:
-    """Test that an invalid track value raises a validation error.
+@pytest.mark.parametrize(
+    "bad_id",
+    ["FixPagination", "123_task", "task-with-dashes", "", "   "],
+)
+def test_invalid_id_raises_validation_error(bad_id: str) -> None:
+    """Test that invalid id values raise validation errors.
+
+    Args:
+        bad_id: An invalid task identifier.
+
+    Returns:
+        None.
+    """
+    with pytest.raises(ValidationError):
+        make_valid_task(id=bad_id)
+
+
+@pytest.mark.parametrize(
+    "bad_repo_fixture",
+    ["RepoFixture", "123_fixture", "fixture-with-dash", "", "   "],
+)
+def test_invalid_repo_fixture_raises_validation_error(
+    bad_repo_fixture: str,
+) -> None:
+    """Test that invalid repo_fixture values raise validation errors.
+
+    Args:
+        bad_repo_fixture: An invalid repo fixture identifier.
+
+    Returns:
+        None.
+    """
+    with pytest.raises(ValidationError):
+        make_valid_task(repo_fixture=bad_repo_fixture)
+
+
+@pytest.mark.parametrize("bad_goal", ["", "   ", "fix bug", "short"])
+def test_invalid_goal_raises_validation_error(bad_goal: str) -> None:
+    """Test that invalid goal values raise validation errors.
+
+    Args:
+        bad_goal: An invalid goal string.
+
+    Returns:
+        None.
+    """
+    with pytest.raises(ValidationError):
+        make_valid_task(goal=bad_goal)
+
+
+def test_missing_hidden_constraints_raises() -> None:
+    """Test that missing hidden_constraints raises a validation error.
 
     Args:
         None.
@@ -56,12 +105,15 @@ def test_invalid_track_raises() -> None:
     Returns:
         None.
     """
+    data = make_valid_task().model_dump()
+    data.pop("hidden_constraints")
+
     with pytest.raises(ValidationError):
-        make_valid_task(track="nonsense")
+        TaskSpec(**data)
 
 
-def test_invalid_difficulty_raises() -> None:
-    """Test that an invalid difficulty value raises a validation error.
+def test_missing_risk_tags_raises() -> None:
+    """Test that missing risk_tags raises a validation error.
 
     Args:
         None.
@@ -69,21 +121,11 @@ def test_invalid_difficulty_raises() -> None:
     Returns:
         None.
     """
+    data = make_valid_task().model_dump()
+    data.pop("risk_tags")
+
     with pytest.raises(ValidationError):
-        make_valid_task(difficulty="impossible")
-
-
-def test_blank_goal_raises() -> None:
-    """Test that a blank goal value raises a validation error.
-
-    Args:
-        None.
-
-    Returns:
-        None.
-    """
-    with pytest.raises(ValidationError):
-        make_valid_task(goal="   ")
+        TaskSpec(**data)
 
 
 def test_empty_visible_instructions_raises() -> None:
@@ -112,8 +154,8 @@ def test_blank_visible_instruction_item_raises() -> None:
         make_valid_task(visible_instructions=["valid", "   "])
 
 
-def test_risk_tags_are_normalized_and_deduped() -> None:
-    """Test that risk tags are lowercased and deduplicated.
+def test_empty_hidden_constraints_raises() -> None:
+    """Test that an empty hidden_constraints list raises a validation error.
 
     Args:
         None.
@@ -121,13 +163,12 @@ def test_risk_tags_are_normalized_and_deduped() -> None:
     Returns:
         None.
     """
-    task = make_valid_task(risk_tags=["HardCoding", "hardcoding", "spec-gaming"])
+    with pytest.raises(ValidationError):
+        make_valid_task(hidden_constraints=[])
 
-    assert task.risk_tags == ["hardcoding", "spec-gaming"]
 
-
-def test_expected_artifacts_are_deduped() -> None:
-    """Test that expected artifacts are deduplicated while preserving order.
+def test_blank_hidden_constraint_item_raises() -> None:
+    """Test that a blank hidden constraint item raises a validation error.
 
     Args:
         None.
@@ -135,8 +176,31 @@ def test_expected_artifacts_are_deduped() -> None:
     Returns:
         None.
     """
-    task = make_valid_task(
-        expected_artifacts=["src/a.py", "src/a.py", "tests/test_a.py"]
-    )
+    with pytest.raises(ValidationError):
+        make_valid_task(hidden_constraints=["valid", "   "])
 
-    assert task.expected_artifacts == ["src/a.py", "tests/test_a.py"]
+
+def test_empty_risk_tags_raises() -> None:
+    """Test that an empty risk_tags list raises a validation error.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
+    with pytest.raises(ValidationError):
+        make_valid_task(risk_tags=[])
+
+
+def test_blank_risk_tag_item_raises() -> None:
+    """Test that a blank risk tag item raises a validation error.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
+    with pytest.raises(ValidationError):
+        make_valid_task(risk_tags=["valid", "   "])

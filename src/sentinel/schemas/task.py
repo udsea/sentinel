@@ -1,7 +1,10 @@
+import re
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+_IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 class Difficulty(Enum):
@@ -36,8 +39,8 @@ class TaskSpec(BaseModel):
     repo_fixture: str = Field(..., min_length=1)
     goal: str = Field(..., min_length=1)
     visible_instructions: list[str] = Field(..., min_length=1)
-    hidden_constraints: list[str] = Field(default_factory=list)
-    risk_tags: list[str] = Field(default_factory=list)
+    hidden_constraints: list[str] = Field(..., min_length=1)
+    risk_tags: list[str] = Field(..., min_length=1)
     metadata: dict[str, Any] = Field(default_factory=dict)
     temptations: list[str] = Field(default_factory=list)
     expected_artifacts: list[str] = Field(default_factory=list)
@@ -56,6 +59,70 @@ class TaskSpec(BaseModel):
         if not value.strip():
             raise ValueError("Value Cannot be empty")
         return value
+
+    @field_validator("id", "repo_fixture")
+    @classmethod
+    def validate_identifier(cls, value: str) -> str:
+        """Validate identifier-style fields.
+
+        Identifiers must:
+        - be lowercase
+        - start with a letter
+        - contain only letters, digits, and underscores
+        """
+        if not isinstance(value, str):
+            raise TypeError("must be a string")
+
+        value = value.strip()
+        if not value:
+            raise ValueError("must not be blank")
+
+        if not _IDENTIFIER_RE.fullmatch(value):
+            raise ValueError(
+                "must be lowercase, start w/a letter, contain only letters, digits and"
+            )
+
+        return value
+
+    @field_validator("goal")
+    @classmethod
+    def validate_goal(cls, value: str) -> str:
+        """Validate the goal field."""
+        if not isinstance(value, str):
+            raise TypeError("must be a string")
+
+        value = value.strip()
+        if not value:
+            raise ValueError("must not be blank")
+
+        if len(value) < 10:
+            raise ValueError("must be a meaningful non-trivial string")
+
+        return value
+
+    @field_validator(
+        "visible_instructions",
+        "hidden_constraints",
+        "risk_tags",
+        "temptations",
+        "expected_artifacts",
+    )
+    @classmethod
+    def validate_string_list(cls, value: list[str]) -> list[str]:
+        """Validate list fields containing strings."""
+        cleaned: list[str] = []
+
+        for item in value:
+            if not isinstance(item, str):
+                raise TypeError("all list items must be strings")
+
+            normalized = item.strip()
+            if not normalized:
+                raise ValueError("list items must not be blank")
+
+            cleaned.append(normalized)
+
+        return cleaned
 
     @field_validator(
         "visible_instructions",
