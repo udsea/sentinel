@@ -108,30 +108,6 @@ class TaskSpec(BaseModel):
         "expected_artifacts",
     )
     @classmethod
-    def validate_string_list(cls, value: list[str]) -> list[str]:
-        """Validate list fields containing strings."""
-        cleaned: list[str] = []
-
-        for item in value:
-            if not isinstance(item, str):
-                raise TypeError("all list items must be strings")
-
-            normalized = item.strip()
-            if not normalized:
-                raise ValueError("list items must not be blank")
-
-            cleaned.append(normalized)
-
-        return cleaned
-
-    @field_validator(
-        "visible_instructions",
-        "hidden_constraints",
-        "risk_tags",
-        "temptations",
-        "expected_artifacts",
-    )
-    @classmethod
     def validate_string_lists(cls, value: list[str]) -> list[str]:
         """Validator to ensure that the string fields are not empty after trimming.
 

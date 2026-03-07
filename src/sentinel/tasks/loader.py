@@ -7,7 +7,7 @@ from sentinel.schemas.task import TaskSpec
 
 
 class TaskSpecLoadError(ValueError):
-    """Raised when a task spec cannot be loaded or validated."""
+    """Raised when a task spec cannot be parsed or validated."""
 
 
 def load_task_spec(path: str | Path) -> TaskSpec:
@@ -17,20 +17,16 @@ def load_task_spec(path: str | Path) -> TaskSpec:
         path: Path to the YAML task specification file.
 
     Returns:
-        TaskSpec: The validated task specification.
+        TaskSpec: A validated task specification.
 
     Raises:
-        TaskSpecLoadError: If the YAML is malformed, the top-level structure is
-            not a mapping, or schema validation fails.
+        FileNotFoundError: If the file does not exist.
+        TaskSpecLoadError: If the YAML is malformed, the top-level value is not
+            a mapping, or schema validation fails.
     """
     file_path = Path(path)
 
-    try:
-        raw_text = file_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise TaskSpecLoadError(
-            f"Failed to read task spec file '{file_path}': {exc}"
-        ) from exc
+    raw_text = file_path.read_text(encoding="utf-8")
 
     try:
         data = yaml.safe_load(raw_text)
@@ -53,3 +49,20 @@ def load_task_spec(path: str | Path) -> TaskSpec:
         raise TaskSpecLoadError(
             f"Task spec validation failed for '{file_path}': {exc}"
         ) from exc
+
+
+def load_task_specs(paths: list[str | Path]) -> list[TaskSpec]:
+    """Load and validate multiple TaskSpec files.
+
+    Args:
+        paths: A list of YAML task specification file paths.
+
+    Returns:
+        list[TaskSpec]: A list of validated task specifications.
+
+    Raises:
+        FileNotFoundError: If any file does not exist.
+        TaskSpecLoadError: If any YAML file is malformed or fails schema
+            validation.
+    """
+    return [load_task_spec(path) for path in paths]
