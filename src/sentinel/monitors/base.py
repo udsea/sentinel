@@ -7,7 +7,11 @@ from sentinel.traces import RunTrace
 class BaseMonitor(Protocol):
     """Minimal protocol for trace monitors."""
 
-    name: str
+    @property
+    def name(self) -> str:
+        """Return the monitor name."""
+        ...
 
     def assess(self, trace: RunTrace) -> MonitorResult:
         """Assess a run trace and return a monitor result."""
+        ...
