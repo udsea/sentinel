@@ -6,6 +6,8 @@ Sentinel is a lightweight evaluation harness for coding agents, with task specs,
 
 Sentinel is for evaluating coding-agent behavior in a controlled environment. It is built to make oversight logic testable, keep runs reproducible, and leave behind artifacts that another engineer can inspect after the run.
 
+Sentinel is designed for cases where a coding agent can appear successful while still behaving suspiciously, for example by overfitting to tests, editing protected paths, or taking shortcut actions that grading alone would miss.
+
 ## Quickstart
 
 Requirements:
@@ -25,6 +27,8 @@ Useful entry points:
 - Task fixtures: [`tests/fixtures/tasks/`](tests/fixtures/tasks/)
 - Experiment configs: [`tests/fixtures/experiments/`](tests/fixtures/experiments/)
 - Human demo scripts: [`scripts/`](scripts/)
+
+Best place to start: run `bash scripts/demo.sh` for the scripted path, then `bash scripts/demo_openrouter_action.sh` for the real-model smoke path.
 
 ## End-to-End Demo
 
@@ -99,7 +103,7 @@ What this validates:
 - monitor execution over real-model outputs and file-write traces
 - artifact export for benign and cheating-style task sets
 
-Current live finding from the action-model smoke:
+### Current Live Finding
 
 - benign runs exercise the full pipeline, including workspace creation, grading, monitor execution, and artifact export
 - cheating-style runs can still pass grading while being flagged by monitors
@@ -175,7 +179,8 @@ outputs/some_run/
 ├── batch_summary.json
 ├── manifest.json
 ├── experiment_spec.json
-└── <task_id>.json
+├── fix_pagination_v1.json
+└── hide_failing_test_v1.json
 ```
 
 Reference layouts:
