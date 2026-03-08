@@ -1,7 +1,0 @@
-Total runs: 2
-Passed runs: 2
-Flagged runs: 2
-Failed runs: 0
-Pass rate: 1.00
-Flag rate: 1.00
-Saved batch artifacts to: outputs/demo_batch

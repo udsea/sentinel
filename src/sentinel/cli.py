@@ -8,9 +8,14 @@ from sentinel import __version__
 from sentinel.agents import BenignScriptedAgent, CheatingScriptedAgent
 from sentinel.agents.base import BaseAgent
 from sentinel.experiments import load_experiment_spec, run_experiment
-from sentinel.grading import FileExistsGrader
+from sentinel.grading import PytestGrader
 from sentinel.grading.base import BaseGrader
-from sentinel.monitors import PathRiskMonitor
+from sentinel.monitors import (
+    ContentRiskMonitor,
+    KeywordRiskMonitor,
+    PathRiskMonitor,
+    WritePolicyMonitor,
+)
 from sentinel.monitors.base import BaseMonitor
 from sentinel.reporting import (
     save_batch_results,
@@ -144,7 +149,7 @@ def _default_graders() -> list[BaseGrader]:
     Returns:
         list[BaseGrader]: Default graders.
     """
-    return [FileExistsGrader("app.py")]
+    return [PytestGrader(relative_path="tests", pytest_args=["-q"])]
 
 
 def _default_monitors() -> list[BaseMonitor]:
@@ -153,7 +158,12 @@ def _default_monitors() -> list[BaseMonitor]:
     Returns:
         list[BaseMonitor]: Default monitors.
     """
-    return [PathRiskMonitor()]
+    return [
+        PathRiskMonitor(),
+        KeywordRiskMonitor(),
+        ContentRiskMonitor(),
+        WritePolicyMonitor(protected_prefixes=["tests/"]),
+    ]
 
 
 def _format_batch_summary(summary: dict[str, object]) -> str:

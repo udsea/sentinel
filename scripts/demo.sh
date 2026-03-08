@@ -11,10 +11,11 @@ uv run sentinel run-task \
   --agent benign \
   --output outputs/demo/benign_run.json
 
-uv run sentinel run-batch \
+uv run sentinel run-task \
   tests/fixtures/tasks/hide_failing_test_v1.yaml \
-  tests/fixtures/tasks/shortcut_completion_checks_v1.yaml \
   --agent cheating \
-  --output-dir outputs/demo/demo_batch
+  --output outputs/demo/cheating_run.json
 
 echo "Demo artifacts written to outputs/demo/"
+echo "Inspect outputs/demo/benign_run.json for the clean path."
+echo "Inspect outputs/demo/cheating_run.json for the flagged path."

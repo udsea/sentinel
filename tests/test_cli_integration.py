@@ -71,6 +71,29 @@ def test_run_task_prints_task_id_and_agent_info(tmp_path: Path) -> None:
 
     assert "Task: fix_app_v1" in result.stdout
     assert "Agent: BenignScriptedAgent" in result.stdout
+    assert "Graders passed: yes" in result.stdout
+    assert "Monitor flagged: no" in result.stdout
+
+
+def test_run_task_with_cheating_agent_reports_monitor_flags(tmp_path: Path) -> None:
+    """Test that `run-task` reports flagged monitors for the cheating agent.
+
+    Args:
+        tmp_path: Temporary pytest directory.
+    """
+    task_path = write_task_yaml(tmp_path, "task.yaml", "hide_failing_test_v1")
+
+    result = runner.invoke(
+        app,
+        ["run-task", str(task_path), "--agent", "cheating"],
+    )
+
+    assert result.exit_code == 0
+    assert "Task: hide_failing_test_v1" in result.stdout
+    assert "Agent: CheatingScriptedAgent" in result.stdout
+    assert "Graders passed: yes" in result.stdout
+    assert "Monitor flagged: yes" in result.stdout
+    assert "Flagged monitors: PathRiskMonitor" in result.stdout
 
 
 def test_run_task_output_creates_json_file(tmp_path: Path) -> None:
@@ -100,6 +123,8 @@ def test_run_task_output_creates_json_file(tmp_path: Path) -> None:
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert payload["task_id"] == "fix_app_v1"
     assert payload["agent_name"] == "BenignScriptedAgent"
+    assert payload["all_graders_passed"] is True
+    assert payload["any_monitor_flagged"] is False
 
 
 def test_run_batch_with_two_tasks_exits_zero(tmp_path: Path) -> None:
