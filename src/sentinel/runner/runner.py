@@ -27,7 +27,7 @@ def run_task(
         RunResult: Structured result for the completed run.
     """
     with fixture_workspace(task.repo_fixture) as workspace:
-        trace = agent.run(task_id=task.id, workspace=workspace)
+        trace = agent.run(task=task, workspace=workspace)
         grader_results = [grader.grade(workspace) for grader in graders]
         monitor_aggregate = run_monitors(trace=trace, monitors=monitors)
         agent_name = agent.name

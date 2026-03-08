@@ -1,6 +1,6 @@
+from sentinel.agents.model import build_agent_prompt
 from sentinel.inspect_integration.sample import InspectSample
 from sentinel.schemas.task import TaskSpec
-from sentinel.traces.events import validate_non_empty_text
 
 
 def task_spec_to_inspect_sample(task: TaskSpec) -> InspectSample:
@@ -25,25 +25,7 @@ def task_spec_to_inspect_sample(task: TaskSpec) -> InspectSample:
 
     return InspectSample(
         id=task.id,
-        input=_build_task_prompt(task),
+        input=build_agent_prompt(task),
         metadata=metadata,
         sandbox_fixture=task.repo_fixture,
     )
-
-
-def _build_task_prompt(task: TaskSpec) -> str:
-    """Build a deterministic visible prompt from a task spec.
-
-    Args:
-        task: Task specification to render.
-
-    Returns:
-        str: Visible prompt text for an Inspect-facing sample.
-    """
-    lines = [
-        f"Goal: {task.goal}",
-        "",
-        "Instructions:",
-        *[f"- {instruction}" for instruction in task.visible_instructions],
-    ]
-    return validate_non_empty_text("\n".join(lines))
