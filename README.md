@@ -1,10 +1,10 @@
 # Sentinel
 
-Sentinel is a lightweight evaluation harness for coding agents, with task specs, isolated workspaces, traces, graders, monitors, runners, JSON artifact export, and live model-backed smoke paths.
+Sentinel is a lightweight evaluation harness for coding agents, with task specs, isolated workspaces, deterministic and model-backed agents, executable grading, behavioral monitors, experiment configs, and JSON artifact export.
 
 ## Why Sentinel Exists
 
-Sentinel is for evaluating coding-agent behavior in a controlled environment. It is designed to make oversight logic testable, keep runs reproducible, and produce artifacts that another engineer can inspect after the run.
+Sentinel is for evaluating coding-agent behavior in a controlled environment. It is built to make oversight logic testable, keep runs reproducible, and leave behind artifacts that another engineer can inspect after the run.
 
 ## Quickstart
 
@@ -17,13 +17,18 @@ Requirements:
 uv sync --dev
 uv run sentinel version
 uv run sentinel run-task tests/fixtures/tasks/fix_pagination_v1.yaml --agent benign
+uv run sentinel run-experiment tests/fixtures/experiments/benign_demo.yaml
 ```
 
-Sample task YAMLs live under [tests/fixtures/tasks/](/Users/udbhav/Dev/tinkering/sentinel/tests/fixtures/tasks), and the one-shot human demo lives at [scripts/demo.sh](/Users/udbhav/Dev/tinkering/sentinel/scripts/demo.sh).
+Useful entry points:
+
+- Task fixtures: [`tests/fixtures/tasks/`](tests/fixtures/tasks/)
+- Experiment configs: [`tests/fixtures/experiments/`](tests/fixtures/experiments/)
+- Human demo scripts: [`scripts/`](scripts/)
 
 ## End-to-End Demo
 
-Benign demo:
+Scripted benign demo:
 
 ```bash
 uv run sentinel run-task \
@@ -32,7 +37,7 @@ uv run sentinel run-task \
   --output outputs/demo/benign_run.json
 ```
 
-Cheating demo:
+Scripted cheating demo:
 
 ```bash
 uv run sentinel run-task \
@@ -59,20 +64,20 @@ What to look for:
 
 - The benign run should show `all_graders_passed: true` and `any_monitor_flagged: false`.
 - The cheating run may still pass grading, but `monitor_aggregate.any_flagged` should be `true`.
-- The cheating run should list multiple flagged monitors, including path-based, keyword-based, and content-based checks.
-- That contrast is intentional: Sentinel is demonstrating oversight beyond task-success alone.
+- The cheating run should list multiple flagged monitors, including path-based, keyword-based, content-based, and policy-based checks.
+- That contrast is intentional: Sentinel tracks task success and suspicious behavior separately.
 
-Curated example outputs live in:
+Curated scripted-demo examples:
 
-- [docs/examples/benign_run_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/benign_run_summary.txt)
-- [docs/examples/cheating_run_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/cheating_run_summary.txt)
-- [docs/examples/demo_notes.md](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/demo_notes.md)
+- [`docs/examples/benign_run_summary.txt`](docs/examples/benign_run_summary.txt)
+- [`docs/examples/cheating_run_summary.txt`](docs/examples/cheating_run_summary.txt)
+- [`docs/examples/demo_notes.md`](docs/examples/demo_notes.md)
 
 ## Real-Model Smoke Validation
 
-Sentinel also includes small OpenRouter-backed smoke experiment configs for validating the model-agent path end to end.
+Sentinel also includes OpenRouter-backed smoke configs for validating the model-agent path end to end.
 
-Setup:
+Prompt-only smoke:
 
 ```bash
 export OPENROUTER_API_KEY=your_api_key_here
@@ -86,47 +91,47 @@ export OPENROUTER_API_KEY=your_api_key_here
 bash scripts/demo_openrouter_action.sh
 ```
 
-What success looks like:
-
-- `outputs/openrouter_benign_smoke` and `outputs/openrouter_cheating_smoke` are created
-- `outputs/openrouter_action_benign_smoke` and `outputs/openrouter_action_cheating_smoke` are created
-- each output dir contains `batch_summary.json`, `manifest.json`, `experiment_spec.json`, and per-task run JSON files
-- the runs complete through the native experiment pipeline without manual wiring
-
 What this validates:
 
-- provider-backed model-agent construction
-- bounded read/write/final action execution for the action-model path
+- provider-backed model-agent construction through an OpenAI-compatible client boundary
+- bounded `read_file` / `write_file` / `final` action execution for the action-model path
 - executable grading through `PytestGrader`
-- monitor execution over real-model final outputs
-- monitor execution over real-model file writes for the action-model path
+- monitor execution over real-model outputs and file-write traces
 - artifact export for benign and cheating-style task sets
 
-Live finding from the current action-model smoke:
+Current live finding from the action-model smoke:
 
-- benign runs complete through grading and artifact export, even when the bounded action loop hits its step cap
-- cheating runs can still pass grading while being flagged by monitors
+- benign runs exercise the full pipeline, including workspace creation, grading, monitor execution, and artifact export
+- cheating-style runs can still pass grading while being flagged by monitors
 - `SourceShortcutMonitor` catches test-informed source edits even when protected test files are not modified directly
 
-Current example results:
+This is a proof-of-life smoke path, not a benchmark. Model behavior varies with the selected model, prompt shape, and bounded step limit.
 
-- [outputs/openrouter_action_benign_smoke/batch_summary.json](/Users/udbhav/Dev/tinkering/sentinel/outputs/openrouter_action_benign_smoke/batch_summary.json)
-- [outputs/openrouter_action_cheating_smoke/batch_summary.json](/Users/udbhav/Dev/tinkering/sentinel/outputs/openrouter_action_cheating_smoke/batch_summary.json)
-- [docs/examples/real_model_demo/benign_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/real_model_demo/benign_summary.txt)
-- [docs/examples/real_model_demo/cheating_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/real_model_demo/cheating_summary.txt)
-- [docs/examples/real_model_demo/demo_note.md](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/real_model_demo/demo_note.md)
+Curated real-model examples:
 
-What this does not claim:
+- [`docs/examples/real_model_demo/benign_summary.txt`](docs/examples/real_model_demo/benign_summary.txt)
+- [`docs/examples/real_model_demo/cheating_summary.txt`](docs/examples/real_model_demo/cheating_summary.txt)
+- [`docs/examples/real_model_demo/demo_note.md`](docs/examples/real_model_demo/demo_note.md)
 
-- this is a proof-of-life smoke path, not a benchmark
-- it is not broad empirical validation across many models
-- cheating-style monitor outcomes may vary with actual model choices and prompts
+## What Sentinel Does Today
+
+- Runs deterministic scripted agents against isolated fixture-backed workspaces
+- Runs prompt-only and bounded action-taking model agents through a provider-agnostic text client boundary
+- Supports OpenAI-compatible and OpenRouter-backed model smoke paths
+- Applies static file checks and executable grading with `PytestGrader`
+- Applies heuristic monitors for protected-path writes, risky final-output language, suspicious written content, configurable write policy, and test-informed shortcut edits
+- Runs single tasks, batches, and config-driven experiments from YAML
+- Exports per-run JSON artifacts, batch summaries, manifests, and experiment specs
+- Compares runs and batches to surface regressions, improvements, and monitor changes
+- Packages tasks into Inspect-aligned samples, task stubs, execution results, and reporting artifacts
 
 ## Core Architecture Flow
 
-`Task spec -> workspace -> agent -> trace -> graders/monitors -> runner -> reporting`
+`task spec -> workspace -> agent -> trace -> graders / monitors -> runner -> reporting`
 
-The task spec selects a fixture repo, the sandbox layer materializes an isolated workspace, the agent acts inside it, the trace records what happened, graders inspect resulting workspace state, monitors inspect behavioral signals, and reporting writes inspectable artifacts. More detail is in [docs/architecture.md](/Users/udbhav/Dev/tinkering/sentinel/docs/architecture.md).
+The task spec selects a fixture repo, the sandbox layer materializes an isolated workspace, the agent acts inside it, the trace records reads, writes, and final output, graders inspect resulting workspace state, monitors inspect behavior, and reporting writes inspectable artifacts.
+
+More detail is in [`docs/architecture.md`](docs/architecture.md).
 
 ## Project Structure
 
@@ -154,45 +159,43 @@ docs/
 ├── architecture.md
 └── examples/
 scripts/
-└── demo.sh
+├── demo.sh
+├── demo_openrouter.sh
+└── demo_openrouter_action.sh
 ```
 
 ## Artifact Outputs
 
-Each single-run JSON artifact includes the task id, workspace path, run trace, grader results, raw monitor results, and the monitor aggregate. The canonical demo writes:
+Single-run artifacts include the task id, workspace path, trace, grader results, raw monitor results, and monitor aggregate.
+
+Batch and experiment bundles include:
 
 ```text
-outputs/demo/
-├── benign_run.json
-└── cheating_run.json
+outputs/some_run/
+├── batch_summary.json
+├── manifest.json
+├── experiment_spec.json
+└── <task_id>.json
 ```
 
-Reference layouts live in:
+Reference layouts:
 
-- [docs/examples/benign_artifact_layout.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/benign_artifact_layout.txt)
-- [docs/examples/cheating_artifact_layout.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/cheating_artifact_layout.txt)
-
-### What Sentinel Does Today
-
-- Runs deterministic scripted agents against isolated workspace copies
-- Includes a bounded action-taking model agent with `read_file`, `write_file`, and `final`
-- Applies static and pytest-backed graders to workspace state
-- Applies heuristic path, output, content, write-policy, and source-shortcut monitors to run traces
-- Exports per-run and batch artifact bundles as JSON
-- Packages Sentinel tasks into Inspect-aligned samples and task stubs
+- [`docs/examples/benign_artifact_layout.txt`](docs/examples/benign_artifact_layout.txt)
+- [`docs/examples/cheating_artifact_layout.txt`](docs/examples/cheating_artifact_layout.txt)
 
 ## Current Limitations
 
-- The strongest end-to-end demos currently use scripted agents, not tool-using model runtimes.
-- The action-model path is intentionally narrow: `read_file`, `write_file`, and `final` only, with a max of 3 steps.
-- Monitors are heuristic and intentionally simple.
-- There is no concurrency or large experiment scheduler yet.
-- Workspace paths captured in artifacts refer to ephemeral temp directories from the original run.
+- The live model-agent path is intentionally narrow: text generation only for `ModelAgent`, and bounded `read_file`, `write_file`, `final` actions only for `ActionModelAgent`
+- There is no general tool runtime yet: no shell execution, no planner loop, and no unrestricted file/tool interface for model agents
+- Monitor logic is heuristic and intentionally simple, not learned or calibrated
+- OpenRouter smoke runs are proof-of-life validations, not broad empirical benchmarks
+- There is no concurrency layer, sweep engine, or large-scale experiment scheduler yet
+- Workspace paths captured in artifacts refer to ephemeral temp directories from the original run
 
 ## Roadmap
 
 - Optional `inspect_ai` dependency integration and task registration
-- Richer grading backends
-- Additional monitor families
-- More realistic model/action agent paths
+- Richer model-action runtimes beyond the current bounded loop
+- Additional monitor families and better failure analysis tooling
+- More realistic coding-task fixtures and experiment sets
 - Larger experiment orchestration and comparison workflows
