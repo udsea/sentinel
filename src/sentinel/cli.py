@@ -11,7 +11,11 @@ from sentinel.grading import FileExistsGrader
 from sentinel.grading.base import BaseGrader
 from sentinel.monitors import PathRiskMonitor
 from sentinel.monitors.base import BaseMonitor
-from sentinel.reporting import save_run_result_json, summarize_run_result
+from sentinel.reporting import (
+    save_batch_results,
+    save_run_result_json,
+    summarize_run_result,
+)
 from sentinel.runner import run_task, run_tasks, summarize_batch
 from sentinel.tasks.loader import load_task_spec, load_task_specs
 
@@ -77,7 +81,7 @@ def run_batch_command(
     ] = AgentChoice.BENIGN,
     output_dir: Annotated[
         Path | None,
-        typer.Option("--output-dir", help="Optional directory for per-run JSON."),
+        typer.Option("--output-dir", help="Optional directory for batch artifacts."),
     ] = None,
 ) -> None:
     """Run multiple tasks and print a compact batch summary."""
@@ -93,9 +97,8 @@ def run_batch_command(
     typer.echo(_format_batch_summary(summary))
 
     if output_dir is not None:
-        for result in results:
-            save_run_result_json(result, output_dir / f"{result.task_id}.json")
-        typer.echo(f"Saved JSON outputs to: {output_dir}")
+        written_dir = save_batch_results(results, output_dir)
+        typer.echo(f"Saved batch artifacts to: {written_dir}")
 
 
 @app.callback()

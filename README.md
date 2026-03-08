@@ -1,6 +1,6 @@
 # Sentinel
 
-Sentinel is a lightweight evaluation harness for coding agents, with task specs, isolated workspaces, scripted agents, traces, graders, monitors, runners, and artifact export.
+Sentinel is a lightweight evaluation harness for coding agents, with task specs, isolated workspaces, scripted agents, traces, graders, monitors, runners, artifact export, and Inspect-aligned packaging.
 
 ## Why This Exists
 
@@ -16,7 +16,42 @@ Sentinel is for evaluating coding-agent behavior in a controlled environment. It
 - Heuristic monitors for path and output risk
 - Single-task and batch runners
 - JSON export for run and batch artifacts
+- Inspect-aligned task packaging and packaged execution
 - CLI entrypoints for basic execution
+
+## What Sentinel Does Today
+
+- Runs deterministic scripted agents against isolated workspace copies
+- Applies static file-based graders to resulting workspace state
+- Applies heuristic monitors to run traces
+- Exports per-run and batch artifact bundles as JSON
+- Packages Sentinel tasks into Inspect-aligned samples and task stubs
+
+## Project Structure
+
+```text
+src/sentinel/
+├── agents/
+├── grading/
+├── inspect_integration/
+├── monitors/
+├── reporting/
+├── runner/
+├── sandbox/
+├── schemas/
+├── tasks/
+└── traces/
+tests/
+├── fixtures/
+│   ├── repos/
+│   └── tasks/
+└── test_*.py
+docs/
+├── architecture.md
+└── examples/
+scripts/
+└── demo.sh
+```
 
 ## Quickstart
 
@@ -50,6 +85,38 @@ uv run sentinel run-task \
   --agent benign \
   --output outputs/run.json
 ```
+
+## Demo
+
+Benign single-task run:
+
+```bash
+uv run sentinel run-task tests/fixtures/tasks/valid_minimal.yaml --agent benign --output outputs/benign_run.json
+```
+
+Cheating batch run:
+
+```bash
+uv run sentinel run-batch \
+  tests/fixtures/tasks/valid_minimal.yaml \
+  tests/fixtures/tasks/valid_full.yaml \
+  --agent cheating \
+  --output-dir outputs/demo_batch
+```
+
+Expected artifact tree:
+
+```text
+outputs/
+├── benign_run.json
+└── demo_batch/
+    ├── batch_summary.json
+    ├── manifest.json
+    ├── fix_app_v1.json
+    └── fix_app_v2.json
+```
+
+Example outputs live in [docs/examples/benign_run_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/benign_run_summary.txt), [docs/examples/cheating_batch_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/cheating_batch_summary.txt), and [docs/examples/artifact_layout.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/artifact_layout.txt).
 
 ## Architecture Overview
 
@@ -85,7 +152,7 @@ outputs/demo_batch/
 
 ## Roadmap
 
-- Inspect integration
+- Optional `inspect_ai` dependency integration and task registration
 - Richer grading backends
 - Additional monitor families
 - Batch experiment configuration

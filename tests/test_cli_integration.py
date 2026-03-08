@@ -137,10 +137,10 @@ def test_run_batch_prints_total_runs(tmp_path: Path) -> None:
     assert "Passed runs: 2" in result.stdout
 
 
-def test_run_batch_output_dir_creates_one_json_file_per_task(
+def test_run_batch_output_dir_creates_batch_artifact_bundle(
     tmp_path: Path,
 ) -> None:
-    """Test that `run-batch --output-dir` writes one JSON file per task.
+    """Test that `run-batch --output-dir` writes the batch artifact bundle.
 
     Args:
         tmp_path: Temporary pytest directory.
@@ -163,6 +163,8 @@ def test_run_batch_output_dir_creates_one_json_file_per_task(
     )
 
     assert result.exit_code == 0
+    assert (output_dir / "batch_summary.json").exists()
+    assert (output_dir / "manifest.json").exists()
     assert (output_dir / "fix_app_v1.json").exists()
     assert (output_dir / "fix_app_v2.json").exists()
 

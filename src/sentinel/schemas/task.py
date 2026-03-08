@@ -48,16 +48,19 @@ class TaskSpec(BaseModel):
     @field_validator("id", "repo_fixture", "goal")
     @classmethod
     def validate_non_empty_string(cls, value: str) -> str:
-        """Validator to ensure that the string fields are not empty.
+        """Validate that required string fields are not blank.
 
-        Args:value (str): The string value to validate.
+        Args:
+            value: String value to validate.
 
-        Raises:ValueError: If the value is an empty string or contains only whitespace.
+        Returns:
+            str: Validated string value.
 
-        Returns:str: The validated string value if it is not empty.
+        Raises:
+            ValueError: If the value is empty or whitespace only.
         """
         if not value.strip():
-            raise ValueError("Value Cannot be empty")
+            raise ValueError("Value cannot be empty")
         return value
 
     @field_validator("id", "repo_fixture")
@@ -109,13 +112,16 @@ class TaskSpec(BaseModel):
     )
     @classmethod
     def validate_string_lists(cls, value: list[str]) -> list[str]:
-        """Validator to ensure that the string fields are not empty after trimming.
+        """Validate that string-list items remain non-empty after trimming.
 
-        Args:value (list[str]): The list of strings to validate.alidate.
+        Args:
+            value: List of strings to validate.
 
-        Raises:ValueError: If the value is an empty string or contains only whitespace.
+        Returns:
+            list[str]: Cleaned list with whitespace removed from each item.
 
-        Returns:str: The validated string value if it is not empty.
+        Raises:
+            ValueError: If any item is empty or whitespace only.
         """
         cleaned_list: list[str] = []
         for item in value:
