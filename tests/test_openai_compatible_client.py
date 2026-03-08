@@ -111,6 +111,7 @@ def test_generate_posts_chat_completions_request(
         model="gpt-4.1-mini",
         base_url="https://api.openai.com/v1",
         api_key="test-key",
+        system_prompt="You are a careful coding agent.",
     )
 
     response = client.generate("Fix the pagination bug.")
@@ -130,10 +131,32 @@ def test_generate_posts_chat_completions_request(
         "messages": [
             {
                 "role": "system",
-                "content": "You are a coding agent. Respond concisely and directly.",
+                "content": "You are a careful coding agent.",
             },
             {"role": "user", "content": "Fix the pagination bug."},
         ],
+    }
+
+
+def test_generate_omits_system_message_when_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that the system message is omitted when no prompt is configured."""
+    recorder = RecordingUrlopen(make_response_body("Fixed the bug."))
+    monkeypatch.setattr("sentinel.agents.providers.http_client.urlopen", recorder)
+    client = OpenAICompatibleTextClient(
+        model="gpt-4.1-mini",
+        base_url="https://api.openai.com/v1",
+        api_key="test-key",
+        system_prompt=None,
+    )
+
+    client.generate("Fix the pagination bug.")
+
+    request = recorder.requests[0]
+    assert request["body"] == {
+        "model": "gpt-4.1-mini",
+        "messages": [{"role": "user", "content": "Fix the pagination bug."}],
     }
 
 
@@ -167,6 +190,19 @@ def test_from_env_loads_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     assert client.api_key == "env-key"
 
 
+def test_from_env_raises_when_api_key_env_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that from_env fails clearly when the API key env var is missing."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    with pytest.raises(ProviderClientError, match="OPENAI_API_KEY"):
+        OpenAICompatibleTextClient.from_env(
+            model="gpt-4.1-mini",
+            base_url="https://api.openai.com/v1",
+        )
+
+
 def test_invalid_json_response_raises_provider_client_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -196,6 +232,38 @@ def test_missing_message_content_raises_provider_client_error(
     )
 
     with pytest.raises(ProviderClientError, match="text content"):
+        client.generate("Fix the pagination bug.")
+
+
+def test_missing_choices_raises_provider_client_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that responses without choices fail cleanly."""
+    recorder = RecordingUrlopen(json.dumps({}).encode("utf-8"))
+    monkeypatch.setattr("sentinel.agents.providers.http_client.urlopen", recorder)
+    client = OpenAICompatibleTextClient(
+        model="gpt-4.1-mini",
+        base_url="https://example.com/v1",
+    )
+
+    with pytest.raises(ProviderClientError, match="choices"):
+        client.generate("Fix the pagination bug.")
+
+
+def test_blank_message_content_raises_provider_client_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that blank response content fails cleanly."""
+    recorder = RecordingUrlopen(
+        json.dumps({"choices": [{"message": {"content": "   "}}]}).encode("utf-8")
+    )
+    monkeypatch.setattr("sentinel.agents.providers.http_client.urlopen", recorder)
+    client = OpenAICompatibleTextClient(
+        model="gpt-4.1-mini",
+        base_url="https://example.com/v1",
+    )
+
+    with pytest.raises(ProviderClientError, match="must not be blank"):
         client.generate("Fix the pagination bug.")
 
 
@@ -259,10 +327,21 @@ def test_for_openrouter_from_env_loads_api_key(
     assert client.api_key == "router-env-key"
 
 
+def test_for_openrouter_from_env_raises_when_api_key_env_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that the OpenRouter env constructor fails when the key is missing."""
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+    with pytest.raises(ProviderClientError, match="OPENROUTER_API_KEY"):
+        OpenAICompatibleTextClient.for_openrouter_from_env(model="openai/gpt-5.2")
+
+
 def test_for_openrouter_from_env_loads_optional_site_env_vars(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test that optional OpenRouter site metadata is loaded from env vars."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "router-env-key")
     monkeypatch.setenv("OPENROUTER_SITE_URL", "https://sentinel.example")
     monkeypatch.setenv("OPENROUTER_SITE_NAME", "Sentinel Demo")
 

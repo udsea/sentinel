@@ -6,7 +6,6 @@ from sentinel.agents.providers.http_client import (
 )
 from sentinel.traces.events import validate_non_empty_text
 
-_DEFAULT_SYSTEM_PROMPT = "You are a coding agent. Respond concisely and directly."
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
@@ -19,7 +18,7 @@ class OpenAICompatibleTextClient:
         model: str,
         base_url: str,
         api_key: str | None = None,
-        system_prompt: str = _DEFAULT_SYSTEM_PROMPT,
+        system_prompt: str | None = None,
         timeout_seconds: float = 30.0,
         default_headers: dict[str, str] | None = None,
         site_url: str | None = None,
@@ -40,7 +39,7 @@ class OpenAICompatibleTextClient:
         self.model = validate_non_empty_text(model)
         self.base_url = validate_non_empty_text(base_url).rstrip("/")
         self.api_key = _normalize_optional_text(api_key)
-        self.system_prompt = validate_non_empty_text(system_prompt)
+        self.system_prompt = _normalize_optional_text(system_prompt)
         self.timeout_seconds = _validate_timeout_seconds(timeout_seconds)
         self.default_headers = _normalize_headers(default_headers)
         self.site_url = _normalize_optional_text(site_url)
@@ -67,14 +66,16 @@ class OpenAICompatibleTextClient:
         Raises:
             ProviderClientError: If the response shape is invalid.
         """
+        messages: list[dict[str, str]] = []
+        if self.system_prompt is not None:
+            messages.append({"role": "system", "content": self.system_prompt})
+        messages.append({"role": "user", "content": validate_non_empty_text(prompt)})
+
         response = self._http_client.post_json(
             path="/chat/completions",
             payload={
                 "model": self.model,
-                "messages": [
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": validate_non_empty_text(prompt)},
-                ],
+                "messages": messages,
             },
             headers=self._build_headers(),
         )
@@ -87,7 +88,7 @@ class OpenAICompatibleTextClient:
         model: str,
         base_url: str,
         api_key_env: str = "OPENAI_API_KEY",
-        system_prompt: str = _DEFAULT_SYSTEM_PROMPT,
+        system_prompt: str | None = None,
         timeout_seconds: float = 30.0,
         default_headers: dict[str, str] | None = None,
         site_url: str | None = None,
@@ -108,10 +109,11 @@ class OpenAICompatibleTextClient:
         Returns:
             OpenAICompatibleTextClient: Configured client.
         """
+        api_key = _require_env(api_key_env)
         return cls(
             model=model,
             base_url=base_url,
-            api_key=os.getenv(api_key_env),
+            api_key=api_key,
             system_prompt=system_prompt,
             timeout_seconds=timeout_seconds,
             default_headers=default_headers,
@@ -125,6 +127,7 @@ class OpenAICompatibleTextClient:
         *,
         model: str,
         api_key: str | None = None,
+        system_prompt: str | None = None,
         site_url: str | None = None,
         site_name: str | None = None,
         timeout_seconds: float = 30.0,
@@ -134,6 +137,7 @@ class OpenAICompatibleTextClient:
         Args:
             model: Model name to request.
             api_key: Optional OpenRouter API key.
+            system_prompt: Optional system prompt for each request.
             site_url: Optional HTTP-Referer header value.
             site_name: Optional X-OpenRouter-Title header value.
             timeout_seconds: Request timeout in seconds.
@@ -145,6 +149,7 @@ class OpenAICompatibleTextClient:
             model=model,
             base_url=_OPENROUTER_BASE_URL,
             api_key=api_key,
+            system_prompt=system_prompt,
             timeout_seconds=timeout_seconds,
             site_url=site_url,
             site_name=site_name,
@@ -158,6 +163,7 @@ class OpenAICompatibleTextClient:
         api_key_env: str = "OPENROUTER_API_KEY",
         site_url_env: str = "OPENROUTER_SITE_URL",
         site_name_env: str = "OPENROUTER_SITE_NAME",
+        system_prompt: str | None = None,
         timeout_seconds: float = 30.0,
     ) -> "OpenAICompatibleTextClient":
         """Build an OpenRouter client from environment variables.
@@ -167,14 +173,17 @@ class OpenAICompatibleTextClient:
             api_key_env: Environment variable holding the API key.
             site_url_env: Optional environment variable for HTTP-Referer.
             site_name_env: Optional environment variable for X-OpenRouter-Title.
+            system_prompt: Optional system prompt for each request.
             timeout_seconds: Request timeout in seconds.
 
         Returns:
             OpenAICompatibleTextClient: Configured OpenRouter client.
         """
+        api_key = _require_env(api_key_env)
         return cls.for_openrouter(
             model=model,
-            api_key=os.getenv(api_key_env),
+            api_key=api_key,
+            system_prompt=system_prompt,
             site_url=os.getenv(site_url_env),
             site_name=os.getenv(site_name_env),
             timeout_seconds=timeout_seconds,
@@ -267,6 +276,32 @@ def _validate_timeout_seconds(timeout_seconds: float) -> float:
     return normalized_timeout
 
 
+def _require_env(env_name: str) -> str:
+    """Read a required environment variable.
+
+    Args:
+        env_name: Environment variable name.
+
+    Returns:
+        str: Environment variable value.
+
+    Raises:
+        ProviderClientError: If the environment variable is missing or blank.
+    """
+    value = os.getenv(env_name)
+    if value is None:
+        raise ProviderClientError(
+            f"Missing required API key environment variable: {env_name}"
+        )
+
+    try:
+        return validate_non_empty_text(value)
+    except ValueError as error:
+        raise ProviderClientError(
+            f"Missing required API key environment variable: {env_name}"
+        ) from error
+
+
 def _extract_message_content(payload: dict[str, object]) -> str:
     """Extract the first chat-completions message content.
 
@@ -297,4 +332,9 @@ def _extract_message_content(payload: dict[str, object]) -> str:
             "Provider response message did not contain text content."
         )
 
-    return validate_non_empty_text(content)
+    try:
+        return validate_non_empty_text(content)
+    except ValueError as error:
+        raise ProviderClientError(
+            "Provider response message content must not be blank."
+        ) from error
