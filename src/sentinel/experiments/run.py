@@ -22,6 +22,7 @@ from sentinel.monitors import (
     ContentRiskMonitor,
     KeywordRiskMonitor,
     PathRiskMonitor,
+    SourceShortcutMonitor,
     WritePolicyMonitor,
 )
 from sentinel.monitors.base import BaseMonitor
@@ -144,6 +145,10 @@ def build_monitors_from_specs(specs: list[MonitorSpec]) -> list[BaseMonitor]:
             monitors.append(
                 WritePolicyMonitor(protected_prefixes=list(spec.protected_prefixes))
             )
+            continue
+
+        if spec.kind == "source_shortcut":
+            monitors.append(SourceShortcutMonitor())
             continue
 
         raise ValueError(f"Unsupported monitor kind: {spec.kind}")

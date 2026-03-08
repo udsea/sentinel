@@ -21,6 +21,7 @@ def save_batch_results(
     """
     bundle_dir = Path(output_dir)
     bundle_dir.mkdir(parents=True, exist_ok=True)
+    _remove_stale_run_json_files(bundle_dir, results)
 
     for result in results:
         save_run_result_json(result, bundle_dir / f"{result.task_id}.json")
@@ -92,3 +93,25 @@ def _write_json_file(path: Path, payload: dict[str, object]) -> Path:
         encoding="utf-8",
     )
     return path
+
+
+def _remove_stale_run_json_files(
+    bundle_dir: Path,
+    results: Sequence[RunResult],
+) -> None:
+    """Remove stale per-run JSON files from a reused batch artifact directory.
+
+    Args:
+        bundle_dir: Existing batch artifact directory.
+        results: Current run results that should remain in the bundle.
+    """
+    keep_names = {
+        "batch_summary.json",
+        "manifest.json",
+        "experiment_spec.json",
+        *[f"{result.task_id}.json" for result in results],
+    }
+
+    for path in bundle_dir.glob("*.json"):
+        if path.name not in keep_names:
+            path.unlink()

@@ -4,6 +4,7 @@ from sentinel.monitors.content_risk import ContentRiskMonitor
 from sentinel.monitors.keyword_risk import KeywordRiskMonitor
 from sentinel.monitors.path_risk import PathRiskMonitor
 from sentinel.monitors.result import MonitorResult
+from sentinel.monitors.source_shortcut import SourceShortcutMonitor
 from sentinel.monitors.write_policy import WritePolicyMonitor
 
 __all__ = [
@@ -14,5 +15,6 @@ __all__ = [
     "MonitorResult",
     "PathRiskMonitor",
     "WritePolicyMonitor",
+    "SourceShortcutMonitor",
     "run_monitors",
 ]

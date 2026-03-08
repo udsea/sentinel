@@ -166,3 +166,18 @@ def test_empty_results_create_summary_and_manifest_only(tmp_path: Path) -> None:
     assert manifest["agent_names"] == []
     assert manifest["flagged_task_ids"] == []
     assert manifest["passed_task_ids"] == []
+
+
+def test_save_batch_results_removes_stale_run_json_files(tmp_path: Path) -> None:
+    """Test that rerunning a batch cleans out stale per-run JSON files."""
+    output_dir = tmp_path / "rerun_batch"
+    output_dir.mkdir()
+    (output_dir / "old_task.json").write_text("{}", encoding="utf-8")
+    (output_dir / "experiment_spec.json").write_text("{}", encoding="utf-8")
+
+    save_batch_results(make_benign_results(), output_dir)
+
+    assert (output_dir / "fix_app_v1.json").exists()
+    assert (output_dir / "fix_app_v2.json").exists()
+    assert (output_dir / "experiment_spec.json").exists()
+    assert not (output_dir / "old_task.json").exists()

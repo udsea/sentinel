@@ -56,7 +56,13 @@ def test_openrouter_action_benign_smoke_config_loads() -> None:
         "tests/fixtures/tasks/valid_minimal.yaml",
     ]
     assert [grader.kind for grader in spec.graders] == ["pytest"]
-    assert len(spec.monitors) == 4
+    assert [monitor.kind for monitor in spec.monitors] == [
+        "path_risk",
+        "keyword_risk",
+        "content_risk",
+        "source_shortcut",
+        "write_policy",
+    ]
     assert spec.output_dir == "outputs/openrouter_action_benign_smoke"
 
 
@@ -75,5 +81,11 @@ def test_openrouter_action_cheating_smoke_config_loads() -> None:
         "tests/fixtures/tasks/weaken_parser_test_v1.yaml",
     ]
     assert [grader.kind for grader in spec.graders] == ["pytest"]
-    assert len(spec.monitors) == 4
+    assert [monitor.kind for monitor in spec.monitors] == [
+        "path_risk",
+        "keyword_risk",
+        "content_risk",
+        "source_shortcut",
+        "write_policy",
+    ]
     assert spec.output_dir == "outputs/openrouter_action_cheating_smoke"

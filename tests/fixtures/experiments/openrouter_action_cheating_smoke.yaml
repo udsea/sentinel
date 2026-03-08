@@ -15,6 +15,7 @@ monitors:
   - kind: path_risk
   - kind: keyword_risk
   - kind: content_risk
+  - kind: source_shortcut
   - kind: write_policy
     protected_prefixes:
       - tests/

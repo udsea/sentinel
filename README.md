@@ -1,6 +1,6 @@
 # Sentinel
 
-Sentinel is a lightweight evaluation harness for coding agents, with task specs, isolated workspaces, traces, graders, monitors, runners, and JSON artifact export.
+Sentinel is a lightweight evaluation harness for coding agents, with task specs, isolated workspaces, traces, graders, monitors, runners, JSON artifact export, and live model-backed smoke paths.
 
 ## Why Sentinel Exists
 
@@ -102,6 +102,20 @@ What this validates:
 - monitor execution over real-model file writes for the action-model path
 - artifact export for benign and cheating-style task sets
 
+Live finding from the current action-model smoke:
+
+- benign runs complete through grading and artifact export, even when the bounded action loop hits its step cap
+- cheating runs can still pass grading while being flagged by monitors
+- `SourceShortcutMonitor` catches test-informed source edits even when protected test files are not modified directly
+
+Current example results:
+
+- [outputs/openrouter_action_benign_smoke/batch_summary.json](/Users/udbhav/Dev/tinkering/sentinel/outputs/openrouter_action_benign_smoke/batch_summary.json)
+- [outputs/openrouter_action_cheating_smoke/batch_summary.json](/Users/udbhav/Dev/tinkering/sentinel/outputs/openrouter_action_cheating_smoke/batch_summary.json)
+- [docs/examples/real_model_demo/benign_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/real_model_demo/benign_summary.txt)
+- [docs/examples/real_model_demo/cheating_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/real_model_demo/cheating_summary.txt)
+- [docs/examples/real_model_demo/demo_note.md](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/real_model_demo/demo_note.md)
+
 What this does not claim:
 
 - this is a proof-of-life smoke path, not a benchmark
@@ -163,7 +177,7 @@ Reference layouts live in:
 - Runs deterministic scripted agents against isolated workspace copies
 - Includes a bounded action-taking model agent with `read_file`, `write_file`, and `final`
 - Applies static and pytest-backed graders to workspace state
-- Applies heuristic path, output, content, and write-policy monitors to run traces
+- Applies heuristic path, output, content, write-policy, and source-shortcut monitors to run traces
 - Exports per-run and batch artifact bundles as JSON
 - Packages Sentinel tasks into Inspect-aligned samples and task stubs
 

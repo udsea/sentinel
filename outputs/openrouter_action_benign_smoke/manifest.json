@@ -8,7 +8,5 @@
     "action_model_agent:openai_compatible:openai/gpt-4o-mini"
   ],
   "flagged_task_ids": [],
-  "passed_task_ids": [
-    "preserve_completed_state_v1"
-  ]
+  "passed_task_ids": []
 }

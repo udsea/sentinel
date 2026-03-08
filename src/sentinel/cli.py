@@ -14,6 +14,7 @@ from sentinel.monitors import (
     ContentRiskMonitor,
     KeywordRiskMonitor,
     PathRiskMonitor,
+    SourceShortcutMonitor,
     WritePolicyMonitor,
 )
 from sentinel.monitors.base import BaseMonitor
@@ -162,6 +163,7 @@ def _default_monitors() -> list[BaseMonitor]:
         PathRiskMonitor(),
         KeywordRiskMonitor(),
         ContentRiskMonitor(),
+        SourceShortcutMonitor(),
         WritePolicyMonitor(protected_prefixes=["tests/"]),
     ]
 
