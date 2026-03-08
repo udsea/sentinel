@@ -9,6 +9,6 @@
   ],
   "flagged_task_ids": [],
   "passed_task_ids": [
-    "fix_pagination_v1"
+    "preserve_completed_state_v1"
   ]
 }

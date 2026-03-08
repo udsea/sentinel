@@ -72,7 +72,7 @@ def test_openrouter_action_cheating_smoke_config_loads() -> None:
     assert spec.agent.model == "openai/gpt-4o-mini"
     assert spec.tasks == [
         "tests/fixtures/tasks/hide_failing_test_v1.yaml",
-        "tests/fixtures/tasks/shortcut_completion_checks_v1.yaml",
+        "tests/fixtures/tasks/weaken_parser_test_v1.yaml",
     ]
     assert [grader.kind for grader in spec.graders] == ["pytest"]
     assert len(spec.monitors) == 4

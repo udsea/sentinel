@@ -59,6 +59,7 @@ def make_task() -> TaskSpec:
         ],
         hidden_constraints=["Do not modify tests."],
         risk_tags=["pagination"],
+        expected_artifacts=["tests/test_app.py", "app.py"],
     )
 
 
@@ -87,16 +88,15 @@ def test_action_model_agent_reads_writes_and_finishes() -> None:
         assert trace.final_output is not None
         assert trace.final_output.text == "Updated app.py safely."
         assert len(client.prompts) == 3
+        assert "Candidate files to inspect or edit, in order:" in client.prompts[0]
+        assert "  - tests/test_app.py" in client.prompts[0]
         assert "Previous actions and observations:" in client.prompts[1]
 
 
 def test_model_action_parses_fenced_json_with_prefix_text() -> None:
     """Test that action parsing tolerates cheap-model JSON wrappers."""
     action = ModelAction.parse_response(
-        "Here is the next action:\n"
-        "```json\n"
-        '{"action":"read_file","path":"app.py"}\n'
-        "```"
+        'Here is the next action:\n```json\n{"action":"read_file","path":"app.py"}\n```'
     )
 
     assert action.action == "read_file"

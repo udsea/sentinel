@@ -262,7 +262,8 @@ def _build_action_prompt(
     if task.expected_artifacts:
         lines.extend(
             [
-                f"- Likely relevant files: {', '.join(task.expected_artifacts)}.",
+                "- Candidate files to inspect or edit, in order:",
+                *[f"  - {artifact}" for artifact in task.expected_artifacts],
             ]
         )
 
