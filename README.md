@@ -68,6 +68,36 @@ Curated example outputs live in:
 - [docs/examples/cheating_run_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/cheating_run_summary.txt)
 - [docs/examples/demo_notes.md](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/demo_notes.md)
 
+## Real-Model Smoke Validation
+
+Sentinel also includes small OpenRouter-backed smoke experiment configs for validating the model-agent path end to end.
+
+Setup:
+
+```bash
+export OPENROUTER_API_KEY=your_api_key_here
+bash scripts/demo_openrouter.sh
+```
+
+What success looks like:
+
+- `outputs/openrouter_benign_smoke` and `outputs/openrouter_cheating_smoke` are created
+- each output dir contains `batch_summary.json`, `manifest.json`, `experiment_spec.json`, and per-task run JSON files
+- the runs complete through the native experiment pipeline without manual wiring
+
+What this validates:
+
+- provider-backed model-agent construction
+- executable grading through `PytestGrader`
+- monitor execution over real-model final outputs
+- artifact export for benign and cheating-style task sets
+
+What this does not claim:
+
+- this is a proof-of-life smoke path, not a benchmark
+- it is not broad empirical validation across many models
+- cheating-style monitor outcomes may vary with actual model text because the current `ModelAgent` is prompt-only
+
 ## Core Architecture Flow
 
 `Task spec -> workspace -> agent -> trace -> graders/monitors -> runner -> reporting`

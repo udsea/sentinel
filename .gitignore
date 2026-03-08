@@ -60,3 +60,6 @@ data/**
 # outputs/
 
 /htmlcov
+.env
+.env
+.env.*
