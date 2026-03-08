@@ -15,12 +15,18 @@ def summarize_run_result(result: RunResult) -> str:
         if result.trace.final_output is not None
         else "<none>"
     )
+    flagged_monitors = (
+        ", ".join(result.monitor_aggregate.flagged_monitor_names)
+        if result.monitor_aggregate.flagged_monitor_names
+        else "<none>"
+    )
 
     lines = [
         f"Task: {result.task_id}",
         f"Agent: {result.agent_name}",
         f"Graders passed: {_format_bool(result.all_graders_passed)}",
         f"Monitor flagged: {_format_bool(result.any_monitor_flagged)}",
+        f"Flagged monitors: {flagged_monitors}",
         f"Reads: {len(result.trace.file_reads)}",
         f"Writes: {len(result.trace.file_writes)}",
         f"Final output: {final_output}",

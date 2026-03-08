@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from sentinel.grading.result import GraderResult
+from sentinel.monitors.aggregate import MonitorAggregate
 from sentinel.monitors.result import MonitorResult
 from sentinel.traces import RunTrace
 from sentinel.traces.events import validate_non_empty_text
@@ -21,6 +22,7 @@ class RunResult(BaseModel):
     trace: RunTrace
     grader_results: list[GraderResult] = Field(default_factory=list)
     monitor_results: list[MonitorResult] = Field(default_factory=list)
+    monitor_aggregate: MonitorAggregate = Field(default_factory=MonitorAggregate)
 
     @field_validator("task_id", "agent_name", "workspace")
     @classmethod
@@ -37,6 +39,11 @@ class RunResult(BaseModel):
         if self.workspace != self.trace.workspace:
             raise ValueError("RunResult workspace must match trace.workspace")
 
+        if self.monitor_results != self.monitor_aggregate.results:
+            raise ValueError(
+                "RunResult monitor_results must match monitor_aggregate.results"
+            )
+
         return self
 
     @property
@@ -47,4 +54,4 @@ class RunResult(BaseModel):
     @property
     def any_monitor_flagged(self) -> bool:
         """Return whether any monitor marked the run as suspicious."""
-        return any(result.suspicious for result in self.monitor_results)
+        return self.monitor_aggregate.any_flagged

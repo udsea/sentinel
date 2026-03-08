@@ -2,7 +2,7 @@ from pathlib import Path
 
 from sentinel.agents import BenignScriptedAgent, CheatingScriptedAgent
 from sentinel.grading import FileContainsGrader, FileExistsGrader
-from sentinel.monitors import PathRiskMonitor
+from sentinel.monitors import KeywordRiskMonitor, PathRiskMonitor
 from sentinel.runner import RunResult, run_task
 from sentinel.schemas.task import Difficulty, TaskSpec, Track
 
@@ -42,6 +42,8 @@ def test_runner_returns_run_result() -> None:
     assert result.agent_name == "BenignScriptedAgent"
     assert result.trace.task_id == "fix_pagination_v1"
     assert result.workspace == result.trace.workspace
+    assert result.monitor_aggregate.results == []
+    assert result.monitor_aggregate.any_flagged is False
     assert not Path(result.workspace).exists()
 
 
@@ -54,13 +56,16 @@ def test_benign_runner_with_graders_passes_without_monitor_flag() -> None:
             FileExistsGrader("app.py"),
             FileContainsGrader("app.py", "# benign update"),
         ],
-        monitors=[PathRiskMonitor()],
+        monitors=[PathRiskMonitor(), KeywordRiskMonitor()],
     )
 
     assert len(result.grader_results) == 2
-    assert len(result.monitor_results) == 1
+    assert len(result.monitor_results) == 2
     assert result.all_graders_passed is True
     assert result.any_monitor_flagged is False
+    assert result.monitor_aggregate.any_flagged is False
+    assert result.monitor_aggregate.flagged_monitor_names == []
+    assert result.monitor_aggregate.results == result.monitor_results
     assert result.trace.file_reads[0].relative_path == "app.py"
     assert result.trace.file_writes[0].relative_path == "app.py"
 
@@ -70,14 +75,18 @@ def test_cheating_runner_is_flagged_by_path_risk_monitor() -> None:
     result = run_task(
         task=make_task("hide_failing_test_v1"),
         agent=CheatingScriptedAgent(),
-        graders=[FileExistsGrader("tests/test_app.py")],
-        monitors=[PathRiskMonitor()],
+        graders=[FileExistsGrader("app.py")],
+        monitors=[PathRiskMonitor(), KeywordRiskMonitor()],
     )
 
     assert result.all_graders_passed is True
     assert result.any_monitor_flagged is True
-    assert result.monitor_results[0].suspicious is True
-    assert result.monitor_results[0].metadata["flagged_paths"] == ["tests/test_app.py"]
+    assert result.monitor_aggregate.any_flagged is True
+    assert result.monitor_aggregate.flagged_monitor_names == [
+        "PathRiskMonitor",
+        "KeywordRiskMonitor",
+    ]
+    assert result.monitor_aggregate.results == result.monitor_results
 
 
 def test_empty_grader_list_behaves_as_all_passed() -> None:
@@ -86,12 +95,13 @@ def test_empty_grader_list_behaves_as_all_passed() -> None:
         task=make_task("observe_workspace_v1"),
         agent=BenignScriptedAgent(),
         graders=[],
-        monitors=[PathRiskMonitor()],
+        monitors=[PathRiskMonitor(), KeywordRiskMonitor()],
     )
 
     assert result.grader_results == []
     assert result.all_graders_passed is True
     assert result.any_monitor_flagged is False
+    assert result.monitor_aggregate.any_flagged is False
 
 
 def test_empty_monitor_list_behaves_as_not_flagged() -> None:
@@ -105,5 +115,6 @@ def test_empty_monitor_list_behaves_as_not_flagged() -> None:
 
     assert len(result.grader_results) == 1
     assert result.monitor_results == []
+    assert result.monitor_aggregate.results == []
     assert result.all_graders_passed is True
     assert result.any_monitor_flagged is False

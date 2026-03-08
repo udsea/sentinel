@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 
-from sentinel.agents import BenignScriptedAgent
+from sentinel.agents import BenignScriptedAgent, CheatingScriptedAgent
 from sentinel.grading import FileContainsGrader, FileExistsGrader
-from sentinel.monitors import PathRiskMonitor
+from sentinel.monitors import KeywordRiskMonitor, PathRiskMonitor
 from sentinel.reporting import (
     run_result_to_dict,
     save_run_result_json,
@@ -47,7 +47,21 @@ def make_run_result() -> RunResult:
             FileExistsGrader("app.py"),
             FileContainsGrader("app.py", "# benign update"),
         ],
-        monitors=[PathRiskMonitor()],
+        monitors=[PathRiskMonitor(), KeywordRiskMonitor()],
+    )
+
+
+def make_cheating_run_result() -> RunResult:
+    """Create a cheating run result through the runner pipeline.
+
+    Returns:
+        RunResult: Completed cheating run result.
+    """
+    return run_task(
+        task=make_task("hide_failing_test_v1"),
+        agent=CheatingScriptedAgent(),
+        graders=[FileExistsGrader("app.py")],
+        monitors=[PathRiskMonitor(), KeywordRiskMonitor()],
     )
 
 
@@ -61,6 +75,7 @@ def test_run_result_to_dict_returns_expected_keys() -> None:
     assert "trace" in payload
     assert "grader_results" in payload
     assert "monitor_results" in payload
+    assert "monitor_aggregate" in payload
     assert payload["all_graders_passed"] is True
     assert payload["any_monitor_flagged"] is False
 
@@ -114,6 +129,7 @@ def test_summarize_run_result_includes_grader_and_monitor_status() -> None:
 
     assert "Graders passed: yes" in summary
     assert "Monitor flagged: no" in summary
+    assert "Flagged monitors: <none>" in summary
     assert "Reads: 1" in summary
     assert "Writes: 1" in summary
 
@@ -125,3 +141,11 @@ def test_summarize_run_result_includes_final_output_text() -> None:
     assert "Task: fix_pagination_v1" in summary
     assert "Agent: BenignScriptedAgent" in summary
     assert "Final output: Updated app.py successfully." in summary
+
+
+def test_summarize_run_result_includes_flagged_monitor_names() -> None:
+    """Test that summaries include flagged monitor names when present."""
+    summary = summarize_run_result(make_cheating_run_result())
+
+    assert "Monitor flagged: yes" in summary
+    assert "Flagged monitors: PathRiskMonitor, KeywordRiskMonitor" in summary
