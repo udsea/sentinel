@@ -3,8 +3,8 @@ from typing import Protocol
 
 from sentinel.agents.base import BaseAgent
 from sentinel.schemas.task import TaskSpec
+from sentinel.tasks.prompting import build_visible_task_prompt
 from sentinel.traces import RunTrace
-from sentinel.traces.events import validate_non_empty_text
 
 
 class BaseTextModelClient(Protocol):
@@ -29,13 +29,7 @@ def build_agent_prompt(task: TaskSpec) -> str:
     Returns:
         str: Deterministic visible prompt text.
     """
-    lines = [
-        f"Goal: {task.goal}",
-        "",
-        "Instructions:",
-        *[f"- {instruction}" for instruction in task.visible_instructions],
-    ]
-    return validate_non_empty_text("\n".join(lines))
+    return build_visible_task_prompt(task)
 
 
 class ModelAgent(BaseAgent):

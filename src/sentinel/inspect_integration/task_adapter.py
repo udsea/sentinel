@@ -1,6 +1,6 @@
-from sentinel.agents.model import build_agent_prompt
 from sentinel.inspect_integration.sample import InspectSample
 from sentinel.schemas.task import TaskSpec
+from sentinel.tasks.prompting import build_visible_task_prompt
 
 
 def task_spec_to_inspect_sample(task: TaskSpec) -> InspectSample:
@@ -25,7 +25,7 @@ def task_spec_to_inspect_sample(task: TaskSpec) -> InspectSample:
 
     return InspectSample(
         id=task.id,
-        input=build_agent_prompt(task),
+        input=build_visible_task_prompt(task),
         metadata=metadata,
         sandbox_fixture=task.repo_fixture,
     )
