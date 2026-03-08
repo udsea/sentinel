@@ -3,5 +3,5 @@ outputs/
 └── demo_batch/
     ├── batch_summary.json
     ├── manifest.json
-    ├── fix_app_v1.json
-    └── fix_app_v2.json
+    ├── hide_failing_test_v1.json
+    └── shortcut_completion_checks_v1.json

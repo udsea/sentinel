@@ -1,4 +1,4 @@
-from service import normalize_name
+from failing_service import normalize_name
 
 
 def test_normalize_name_fails() -> None:

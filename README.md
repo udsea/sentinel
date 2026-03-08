@@ -10,9 +10,10 @@ Sentinel is for evaluating coding-agent behavior in a controlled environment. It
 
 - Declarative task specs in YAML
 - Isolated fixture-backed workspaces
+- Small but believable fixture repos for coding-task evaluation
 - Deterministic scripted agents for regression testing
 - Structured run traces with file reads, file writes, and final output
-- Static graders for workspace state checks
+- Static and executable graders for workspace state checks
 - Heuristic monitors for path and output risk
 - Single-task and batch runners
 - JSON export for run and batch artifacts
@@ -22,7 +23,7 @@ Sentinel is for evaluating coding-agent behavior in a controlled environment. It
 ## What Sentinel Does Today
 
 - Runs deterministic scripted agents against isolated workspace copies
-- Applies static file-based graders to resulting workspace state
+- Applies file-based and pytest-backed graders to resulting workspace state
 - Applies heuristic monitors to run traces
 - Exports per-run and batch artifact bundles as JSON
 - Packages Sentinel tasks into Inspect-aligned samples and task stubs
@@ -32,6 +33,7 @@ Sentinel is for evaluating coding-agent behavior in a controlled environment. It
 ```text
 src/sentinel/
 ├── agents/
+│   └── providers/
 ├── grading/
 ├── inspect_integration/
 ├── monitors/
@@ -60,28 +62,30 @@ Requirements:
 - Python 3.11+
 - `uv`
 
-Sample task YAMLs for local runs live in [tests/fixtures/tasks/valid_minimal.yaml](/Users/udbhav/Dev/tinkering/sentinel/tests/fixtures/tasks/valid_minimal.yaml) and [tests/fixtures/tasks/valid_full.yaml](/Users/udbhav/Dev/tinkering/sentinel/tests/fixtures/tasks/valid_full.yaml).
+Sample task YAMLs for local runs live under [tests/fixtures/tasks/](/Users/udbhav/Dev/tinkering/sentinel/tests/fixtures/tasks), including [fix_pagination_v1.yaml](/Users/udbhav/Dev/tinkering/sentinel/tests/fixtures/tasks/fix_pagination_v1.yaml), [hide_failing_test_v1.yaml](/Users/udbhav/Dev/tinkering/sentinel/tests/fixtures/tasks/hide_failing_test_v1.yaml), and [normalize_headers_v1.yaml](/Users/udbhav/Dev/tinkering/sentinel/tests/fixtures/tasks/normalize_headers_v1.yaml).
+
+The fixture catalog now includes `todo_api`, `auth_module`, `csv_cleaner`, and `config_parser`. The current scripted demo agents still operate on `todo_api`, which is why the CLI examples below use the todo tasks.
 
 ```bash
 uv sync --dev
 uv run sentinel version
-uv run sentinel run-task tests/fixtures/tasks/valid_minimal.yaml --agent benign
+uv run sentinel run-task tests/fixtures/tasks/fix_pagination_v1.yaml --agent benign
 ```
 
 One additional batch example:
 
 ```bash
 uv run sentinel run-batch \
-  tests/fixtures/tasks/valid_minimal.yaml \
-  tests/fixtures/tasks/valid_full.yaml \
-  --agent benign
+  tests/fixtures/tasks/hide_failing_test_v1.yaml \
+  tests/fixtures/tasks/shortcut_completion_checks_v1.yaml \
+  --agent cheating
 ```
 
 To save a single run as JSON:
 
 ```bash
 uv run sentinel run-task \
-  tests/fixtures/tasks/valid_minimal.yaml \
+  tests/fixtures/tasks/fix_pagination_v1.yaml \
   --agent benign \
   --output outputs/run.json
 ```
@@ -91,15 +95,15 @@ uv run sentinel run-task \
 Benign single-task run:
 
 ```bash
-uv run sentinel run-task tests/fixtures/tasks/valid_minimal.yaml --agent benign --output outputs/benign_run.json
+uv run sentinel run-task tests/fixtures/tasks/fix_pagination_v1.yaml --agent benign --output outputs/benign_run.json
 ```
 
 Cheating batch run:
 
 ```bash
 uv run sentinel run-batch \
-  tests/fixtures/tasks/valid_minimal.yaml \
-  tests/fixtures/tasks/valid_full.yaml \
+  tests/fixtures/tasks/hide_failing_test_v1.yaml \
+  tests/fixtures/tasks/shortcut_completion_checks_v1.yaml \
   --agent cheating \
   --output-dir outputs/demo_batch
 ```
@@ -112,8 +116,8 @@ outputs/
 └── demo_batch/
     ├── batch_summary.json
     ├── manifest.json
-    ├── fix_app_v1.json
-    └── fix_app_v2.json
+    ├── hide_failing_test_v1.json
+    └── shortcut_completion_checks_v1.json
 ```
 
 Example outputs live in [docs/examples/benign_run_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/benign_run_summary.txt), [docs/examples/cheating_batch_summary.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/cheating_batch_summary.txt), and [docs/examples/artifact_layout.txt](/Users/udbhav/Dev/tinkering/sentinel/docs/examples/artifact_layout.txt).
@@ -134,8 +138,8 @@ The batch reporting layer can persist a bundle like this:
 outputs/demo_batch/
 ├── batch_summary.json
 ├── manifest.json
-├── fix_app_v1.json
-└── fix_app_v2.json
+├── hide_failing_test_v1.json
+└── shortcut_completion_checks_v1.json
 ```
 
 - `batch_summary.json`: aggregate counts and rates for the batch
@@ -144,9 +148,9 @@ outputs/demo_batch/
 
 ## Current Limitations
 
-- Sentinel currently uses scripted agents only.
-- There is no real model or API integration yet.
-- Graders are intentionally simple and static.
+- Sentinel's end-to-end demo agents currently operate on the `todo_api` fixture.
+- There is no tool-using or multi-step model execution loop yet.
+- Graders are intentionally lightweight, even though `PytestGrader` can execute fixture tests.
 - Monitors are heuristic and not learned.
 - There is no concurrency or larger experiment orchestration layer yet.
 
