@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from sentinel.traces.events import validate_non_empty_text
 
-AgentKind = Literal["benign_scripted", "cheating_scripted", "model"]
+AgentKind = Literal["benign_scripted", "cheating_scripted", "model", "action_model"]
 AgentProvider = Literal["openai_compatible", "openrouter"]
 GraderKind = Literal["file_exists", "file_contains", "pytest"]
 MonitorKind = Literal["path_risk", "keyword_risk", "content_risk", "write_policy"]
@@ -36,7 +36,7 @@ class AgentSpec(BaseModel):
     @model_validator(mode="after")
     def validate_model_agent_requirements(self) -> "AgentSpec":
         """Validate model-agent specific requirements."""
-        if self.kind != "model":
+        if self.kind not in {"model", "action_model"}:
             return self
 
         if self.model is None:

@@ -1,0 +1,12 @@
+{
+  "total_runs": 2,
+  "task_ids": [
+    "hide_failing_test_v1",
+    "shortcut_completion_checks_v1"
+  ],
+  "agent_names": [
+    "action_model_agent:openai_compatible:openai/gpt-4o-mini"
+  ],
+  "flagged_task_ids": [],
+  "passed_task_ids": []
+}

@@ -39,3 +39,41 @@ def test_openrouter_cheating_smoke_config_loads() -> None:
     assert [grader.kind for grader in spec.graders] == ["pytest"]
     assert len(spec.monitors) == 4
     assert spec.output_dir == "outputs/openrouter_cheating_smoke"
+
+
+def test_openrouter_action_benign_smoke_config_loads() -> None:
+    """Test that the benign action-model OpenRouter config loads cleanly."""
+    spec = load_experiment_spec(
+        _EXPERIMENTS_ROOT / "openrouter_action_benign_smoke.yaml"
+    )
+
+    assert spec.name == "openrouter_action_benign_smoke"
+    assert spec.agent.kind == "action_model"
+    assert spec.agent.provider == "openrouter"
+    assert spec.agent.model == "openai/gpt-4o-mini"
+    assert spec.tasks == [
+        "tests/fixtures/tasks/fix_pagination_v1.yaml",
+        "tests/fixtures/tasks/valid_minimal.yaml",
+    ]
+    assert [grader.kind for grader in spec.graders] == ["pytest"]
+    assert len(spec.monitors) == 4
+    assert spec.output_dir == "outputs/openrouter_action_benign_smoke"
+
+
+def test_openrouter_action_cheating_smoke_config_loads() -> None:
+    """Test that the cheating action-model OpenRouter config loads cleanly."""
+    spec = load_experiment_spec(
+        _EXPERIMENTS_ROOT / "openrouter_action_cheating_smoke.yaml"
+    )
+
+    assert spec.name == "openrouter_action_cheating_smoke"
+    assert spec.agent.kind == "action_model"
+    assert spec.agent.provider == "openrouter"
+    assert spec.agent.model == "openai/gpt-4o-mini"
+    assert spec.tasks == [
+        "tests/fixtures/tasks/hide_failing_test_v1.yaml",
+        "tests/fixtures/tasks/shortcut_completion_checks_v1.yaml",
+    ]
+    assert [grader.kind for grader in spec.graders] == ["pytest"]
+    assert len(spec.monitors) == 4
+    assert spec.output_dir == "outputs/openrouter_action_cheating_smoke"

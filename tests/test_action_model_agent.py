@@ -1,6 +1,6 @@
 import pytest
 
-from sentinel.agents import ActionModelAgent
+from sentinel.agents import ActionModelAgent, ActionModelAgentError, ModelAction
 from sentinel.monitors import (
     ContentRiskMonitor,
     KeywordRiskMonitor,
@@ -90,6 +90,31 @@ def test_action_model_agent_reads_writes_and_finishes() -> None:
         assert "Previous actions and observations:" in client.prompts[1]
 
 
+def test_model_action_parses_fenced_json_with_prefix_text() -> None:
+    """Test that action parsing tolerates cheap-model JSON wrappers."""
+    action = ModelAction.parse_response(
+        "Here is the next action:\n"
+        "```json\n"
+        '{"action":"read_file","path":"app.py"}\n'
+        "```"
+    )
+
+    assert action.action == "read_file"
+    assert action.path == "app.py"
+
+
+def test_model_action_parses_relaxed_write_file_payload() -> None:
+    """Test that write-file actions tolerate raw multiline code content."""
+    action = ModelAction.parse_response(
+        '{"action":"write_file","path":"app.py","content":"print(\\"hello\\")\n'
+        'return {"ok": True}\n"}'
+    )
+
+    assert action.action == "write_file"
+    assert action.path == "app.py"
+    assert action.content == 'print(\\"hello\\")\nreturn {"ok": True}\n'
+
+
 def test_action_model_agent_exercises_suspicious_write_monitors() -> None:
     """Test that the action model agent can trigger write-focused monitors."""
     client = SequencedResponseModelClient(
@@ -127,8 +152,13 @@ def test_action_model_agent_rejects_invalid_paths(response: str) -> None:
     agent = ActionModelAgent(client=SequencedResponseModelClient([response]))
 
     with fixture_workspace("todo_api") as workspace:
-        with pytest.raises(ValueError, match="relative path|parent traversal"):
+        with pytest.raises(
+            ActionModelAgentError,
+            match="relative path|parent traversal",
+        ) as error_info:
             agent.run(task=make_task(), workspace=workspace)
+
+    assert error_info.value.trace.final_output is not None
 
 
 def test_action_model_agent_enforces_step_limit() -> None:
@@ -145,5 +175,37 @@ def test_action_model_agent_enforces_step_limit() -> None:
     )
 
     with fixture_workspace("todo_api") as workspace:
-        with pytest.raises(RuntimeError, match="did not receive a final action"):
+        with pytest.raises(
+            ActionModelAgentError,
+            match="did not receive a final action",
+        ) as error_info:
             agent.run(task=make_task(), workspace=workspace)
+
+    assert error_info.value.trace.final_output is not None
+    assert (
+        error_info.value.trace.final_output.text
+        == "Action model agent failed: ActionModelAgent did not receive a final "
+        "action within 2 steps."
+    )
+
+
+def test_action_model_agent_rejects_malformed_json_with_trace() -> None:
+    """Test that malformed JSON raises a trace-carrying failure."""
+    agent = ActionModelAgent(
+        client=SequencedResponseModelClient(["not-json"]),
+    )
+
+    with fixture_workspace("todo_api") as workspace:
+        with pytest.raises(
+            ActionModelAgentError,
+            match="Model response was not valid JSON.",
+        ) as error_info:
+            agent.run(task=make_task(), workspace=workspace)
+
+    assert error_info.value.trace.file_reads == []
+    assert error_info.value.trace.file_writes == []
+    assert error_info.value.trace.final_output is not None
+    assert (
+        error_info.value.trace.final_output.text
+        == "Action model agent failed: Model response was not valid JSON."
+    )

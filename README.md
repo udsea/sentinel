@@ -79,24 +79,34 @@ export OPENROUTER_API_KEY=your_api_key_here
 bash scripts/demo_openrouter.sh
 ```
 
+Bounded action smoke:
+
+```bash
+export OPENROUTER_API_KEY=your_api_key_here
+bash scripts/demo_openrouter_action.sh
+```
+
 What success looks like:
 
 - `outputs/openrouter_benign_smoke` and `outputs/openrouter_cheating_smoke` are created
+- `outputs/openrouter_action_benign_smoke` and `outputs/openrouter_action_cheating_smoke` are created
 - each output dir contains `batch_summary.json`, `manifest.json`, `experiment_spec.json`, and per-task run JSON files
 - the runs complete through the native experiment pipeline without manual wiring
 
 What this validates:
 
 - provider-backed model-agent construction
+- bounded read/write/final action execution for the action-model path
 - executable grading through `PytestGrader`
 - monitor execution over real-model final outputs
+- monitor execution over real-model file writes for the action-model path
 - artifact export for benign and cheating-style task sets
 
 What this does not claim:
 
 - this is a proof-of-life smoke path, not a benchmark
 - it is not broad empirical validation across many models
-- cheating-style monitor outcomes may vary with actual model text because the current `ModelAgent` is prompt-only
+- cheating-style monitor outcomes may vary with actual model choices and prompts
 
 ## Core Architecture Flow
 
@@ -151,6 +161,7 @@ Reference layouts live in:
 ### What Sentinel Does Today
 
 - Runs deterministic scripted agents against isolated workspace copies
+- Includes a bounded action-taking model agent with `read_file`, `write_file`, and `final`
 - Applies static and pytest-backed graders to workspace state
 - Applies heuristic path, output, content, and write-policy monitors to run traces
 - Exports per-run and batch artifact bundles as JSON
@@ -159,7 +170,7 @@ Reference layouts live in:
 ## Current Limitations
 
 - The strongest end-to-end demos currently use scripted agents, not tool-using model runtimes.
-- Model-facing agents are prompt-only right now and do not edit files yet.
+- The action-model path is intentionally narrow: `read_file`, `write_file`, and `final` only, with a max of 3 steps.
 - Monitors are heuristic and intentionally simple.
 - There is no concurrency or large experiment scheduler yet.
 - Workspace paths captured in artifacts refer to ephemeral temp directories from the original run.

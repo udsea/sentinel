@@ -59,6 +59,21 @@ def test_valid_experiment_yaml_loads() -> None:
     assert len(spec.tasks) == 2
 
 
+def test_action_model_agent_kind_loads() -> None:
+    """Test that action-model experiment configs validate cleanly."""
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "experiments"
+        / "openrouter_action_benign_smoke.yaml"
+    )
+
+    spec = load_experiment_spec(fixture_path)
+
+    assert isinstance(spec, ExperimentSpec)
+    assert spec.agent.kind == "action_model"
+
+
 def test_invalid_agent_kind_fails(tmp_path: Path) -> None:
     """Test that invalid agent kinds fail validation."""
     payload = make_valid_payload()

@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 
+from sentinel.agents import ActionModelAgentError
 from sentinel.agents.base import BaseAgent
 from sentinel.grading.base import BaseGrader
 from sentinel.monitors import run_monitors
@@ -27,7 +28,10 @@ def run_task(
         RunResult: Structured result for the completed run.
     """
     with fixture_workspace(task.repo_fixture) as workspace:
-        trace = agent.run(task=task, workspace=workspace)
+        try:
+            trace = agent.run(task=task, workspace=workspace)
+        except ActionModelAgentError as error:
+            trace = error.trace
         grader_results = [grader.grade(workspace) for grader in graders]
         monitor_aggregate = run_monitors(trace=trace, monitors=monitors)
         agent_name = agent.name

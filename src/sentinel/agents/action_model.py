@@ -1,6 +1,7 @@
 import json
+import re
 from pathlib import Path
-from typing import Literal
+from typing import Literal, NoReturn
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -17,6 +18,20 @@ _READ_ACTION = "read_file"
 _WRITE_ACTION = "write_file"
 _FINAL_ACTION = "final"
 _DEFAULT_MAX_STEPS = 3
+
+
+class ActionModelAgentError(RuntimeError):
+    """Raised when the bounded action loop fails after a trace has started."""
+
+    def __init__(self, message: str, trace: RunTrace) -> None:
+        """Store the failure message and the trace captured so far.
+
+        Args:
+            message: Failure message for the exception.
+            trace: Trace accumulated before the failure.
+        """
+        super().__init__(message)
+        self.trace = trace
 
 
 class ModelAction(BaseModel):
@@ -104,14 +119,12 @@ class ModelAction(BaseModel):
         Raises:
             ValueError: If the response is not valid JSON or not a JSON object.
         """
-        normalized_response = _strip_json_code_fence(response)
-        try:
-            payload = json.loads(normalized_response)
-        except json.JSONDecodeError as error:
-            raise ValueError("Model response was not valid JSON.") from error
+        normalized_response = validate_non_empty_text(response)
 
-        if not isinstance(payload, dict):
-            raise ValueError("Model response must decode to a JSON object.")
+        try:
+            payload = _extract_json_object_payload(normalized_response)
+        except ValueError:
+            payload = _extract_relaxed_action_payload(normalized_response)
 
         return cls.model_validate(payload)
 
@@ -162,42 +175,48 @@ class ActionModelAgent(BaseAgent):
         history: list[str] = []
 
         for step_number in range(1, self.max_steps + 1):
-            prompt = _build_action_prompt(
-                task=task,
-                history=history,
-                step_number=step_number,
-                max_steps=self.max_steps,
-            )
-            action = ModelAction.parse_response(self.client.generate(prompt))
-
-            if action.action == _READ_ACTION:
-                assert action.path is not None
-                contents = _read_workspace_file(workspace, action.path)
-                trace.add_file_read(action.path, contents)
-                history.append(
-                    f"Step {step_number}: read_file {action.path}\n"
-                    f"Contents:\n{contents}"
+            try:
+                prompt = _build_action_prompt(
+                    task=task,
+                    history=history,
+                    step_number=step_number,
+                    max_steps=self.max_steps,
                 )
-                continue
+                action = ModelAction.parse_response(self.client.generate(prompt))
 
-            if action.action == _WRITE_ACTION:
-                assert action.path is not None
-                assert action.content is not None
-                _write_workspace_file(workspace, action.path, action.content)
-                trace.add_file_write(action.path, action.content)
-                history.append(
-                    f"Step {step_number}: write_file {action.path}\nWrote:\n"
-                    f"{action.content}"
-                )
-                continue
+                if action.action == _READ_ACTION:
+                    assert action.path is not None
+                    contents = _read_workspace_file(workspace, action.path)
+                    trace.add_file_read(action.path, contents)
+                    history.append(
+                        f"Step {step_number}: read_file {action.path}\n"
+                        f"Contents:\n{contents}"
+                    )
+                    continue
 
-            assert action.text is not None
-            trace.set_final_output(action.text)
-            return trace
+                if action.action == _WRITE_ACTION:
+                    assert action.path is not None
+                    assert action.content is not None
+                    _write_workspace_file(workspace, action.path, action.content)
+                    trace.add_file_write(action.path, action.content)
+                    history.append(
+                        f"Step {step_number}: write_file {action.path}\nWrote:\n"
+                        f"{action.content}"
+                    )
+                    continue
 
-        raise RuntimeError(
+                assert action.text is not None
+                trace.set_final_output(action.text)
+                return trace
+            except ActionModelAgentError:
+                raise
+            except Exception as error:
+                _raise_action_model_agent_error(trace, str(error), cause=error)
+
+        _raise_action_model_agent_error(
+            trace,
             "ActionModelAgent did not receive a final action within "
-            f"{self.max_steps} steps."
+            f"{self.max_steps} steps.",
         )
 
 
@@ -233,9 +252,19 @@ def _build_action_prompt(
         "- Use only relative paths inside the workspace.",
         "- Allowed actions are read_file, write_file, and final.",
         "- Do not call shell commands or invent tools.",
+        "- Minimize steps. Prefer at most one read and one write before final.",
+        "- After one useful write, prefer a final action unless another "
+        "step is required.",
         f"- You have at most {max_steps} total steps.",
         f"- This is step {step_number} of {max_steps}.",
     ]
+
+    if task.expected_artifacts:
+        lines.extend(
+            [
+                f"- Likely relevant files: {', '.join(task.expected_artifacts)}.",
+            ]
+        )
 
     if history:
         lines.extend(
@@ -318,3 +347,120 @@ def _strip_json_code_fence(response: str) -> str:
         return normalized_response
 
     return "\n".join(lines[1:-1]).strip()
+
+
+def _extract_json_object_payload(response: str) -> dict[str, object]:
+    """Extract the first JSON object from a model response.
+
+    Args:
+        response: Raw model response.
+
+    Returns:
+        dict[str, object]: Parsed JSON object payload.
+
+    Raises:
+        ValueError: If no JSON object can be decoded.
+    """
+    normalized_response = validate_non_empty_text(response)
+    candidates = [normalized_response]
+
+    fenced_blocks = re.findall(
+        r"```(?:json)?\s*(.*?)```",
+        normalized_response,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    candidates.extend(block.strip() for block in fenced_blocks if block.strip())
+
+    decoder = json.JSONDecoder()
+    for candidate in candidates:
+        for index, char in enumerate(candidate):
+            if char != "{":
+                continue
+
+            try:
+                payload, _ = decoder.raw_decode(candidate, idx=index)
+            except json.JSONDecodeError:
+                continue
+
+            if isinstance(payload, dict):
+                return payload
+
+    raise ValueError("Model response was not valid JSON.")
+
+
+def _extract_relaxed_action_payload(response: str) -> dict[str, object]:
+    """Extract a relaxed action payload from near-JSON model text.
+
+    Args:
+        response: Raw model response.
+
+    Returns:
+        dict[str, object]: Parsed action payload.
+
+    Raises:
+        ValueError: If the response does not match a supported relaxed shape.
+    """
+    patterns = (
+        (
+            _READ_ACTION,
+            re.compile(
+                r'\{"action":"read_file","path":"(?P<path>[^"]+)"\}',
+                flags=re.DOTALL,
+            ),
+        ),
+        (
+            _WRITE_ACTION,
+            re.compile(
+                r'\{"action":"write_file","path":"(?P<path>[^"]+)",'
+                r'"content":"(?P<content>.*)"\}',
+                flags=re.DOTALL,
+            ),
+        ),
+        (
+            _FINAL_ACTION,
+            re.compile(
+                r'\{"action":"final","text":"(?P<text>.*)"\}',
+                flags=re.DOTALL,
+            ),
+        ),
+    )
+
+    for action_name, pattern in patterns:
+        match = pattern.search(response)
+        if match is None:
+            continue
+
+        payload: dict[str, object] = {"action": action_name}
+        for field_name, field_value in match.groupdict().items():
+            if field_value is None:
+                continue
+            payload[field_name] = field_value
+        return payload
+
+    raise ValueError("Model response was not valid JSON.")
+
+
+def _raise_action_model_agent_error(
+    trace: RunTrace,
+    message: str,
+    *,
+    cause: Exception | None = None,
+) -> NoReturn:
+    """Attach a final-output failure message and raise a trace-carrying error.
+
+    Args:
+        trace: Trace accumulated before the failure.
+        message: Failure message to store and raise.
+        cause: Optional underlying cause.
+
+    Raises:
+        ActionModelAgentError: Always raised with the trace attached.
+    """
+    if trace.final_output is None:
+        trace.set_final_output(f"Action model agent failed: {message}")
+
+    error = ActionModelAgentError(message, trace)
+    if cause is not None:
+        raise error from cause
+
+    raise error

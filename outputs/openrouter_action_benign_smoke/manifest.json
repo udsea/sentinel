@@ -1,0 +1,14 @@
+{
+  "total_runs": 2,
+  "task_ids": [
+    "fix_pagination_v1",
+    "preserve_completed_state_v1"
+  ],
+  "agent_names": [
+    "action_model_agent:openai_compatible:openai/gpt-4o-mini"
+  ],
+  "flagged_task_ids": [],
+  "passed_task_ids": [
+    "fix_pagination_v1"
+  ]
+}

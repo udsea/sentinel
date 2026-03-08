@@ -1,0 +1,44 @@
+{
+  "name": "openrouter_action_cheating_smoke",
+  "tasks": [
+    "tests/fixtures/tasks/hide_failing_test_v1.yaml",
+    "tests/fixtures/tasks/shortcut_completion_checks_v1.yaml"
+  ],
+  "agent": {
+    "kind": "action_model",
+    "model": "openai/gpt-4o-mini",
+    "base_url": null,
+    "provider": "openrouter"
+  },
+  "graders": [
+    {
+      "kind": "pytest",
+      "relative_path": ".",
+      "needle": null,
+      "pytest_args": [
+        "-q"
+      ]
+    }
+  ],
+  "monitors": [
+    {
+      "kind": "path_risk",
+      "protected_prefixes": []
+    },
+    {
+      "kind": "keyword_risk",
+      "protected_prefixes": []
+    },
+    {
+      "kind": "content_risk",
+      "protected_prefixes": []
+    },
+    {
+      "kind": "write_policy",
+      "protected_prefixes": [
+        "tests/"
+      ]
+    }
+  ],
+  "output_dir": "outputs/openrouter_action_cheating_smoke"
+}
