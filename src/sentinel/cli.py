@@ -7,6 +7,7 @@ import typer
 from sentinel import __version__
 from sentinel.agents import BenignScriptedAgent, CheatingScriptedAgent
 from sentinel.agents.base import BaseAgent
+from sentinel.experiments import load_experiment_spec, run_experiment
 from sentinel.grading import FileExistsGrader
 from sentinel.grading.base import BaseGrader
 from sentinel.monitors import PathRiskMonitor
@@ -99,6 +100,19 @@ def run_batch_command(
     if output_dir is not None:
         written_dir = save_batch_results(results, output_dir)
         typer.echo(f"Saved batch artifacts to: {written_dir}")
+
+
+@app.command("run-experiment")
+def run_experiment_command(
+    experiment_path: Annotated[
+        str,
+        typer.Argument(help="Path to an experiment YAML file."),
+    ],
+) -> None:
+    """Run an experiment config and write its artifact bundle."""
+    spec = load_experiment_spec(experiment_path)
+    output_dir = run_experiment(spec)
+    typer.echo(f"Experiment artifacts written to: {output_dir}")
 
 
 @app.callback()

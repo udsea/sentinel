@@ -1,0 +1,19 @@
+name: benign_demo
+tasks:
+  - tests/fixtures/tasks/fix_pagination_v1.yaml
+  - tests/fixtures/tasks/valid_minimal.yaml
+agent:
+  kind: benign_scripted
+graders:
+  - kind: pytest
+    relative_path: .
+    pytest_args:
+      - -q
+monitors:
+  - kind: path_risk
+  - kind: keyword_risk
+  - kind: content_risk
+  - kind: write_policy
+    protected_prefixes:
+      - tests/
+output_dir: outputs/benign_demo
