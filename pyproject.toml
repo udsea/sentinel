@@ -1,0 +1,44 @@
+[project]
+name = "sentinel"
+version = "0.1.0"
+description = "Evals Framework For Agentic Coding Models"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.12.5",
+    "pyyaml>=6.0.3",
+    "typer>=0.24.1",
+]
+[project.scripts]
+sentinel = "sentinel.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.9.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+    "pytest-cov>=7.0.0",
+    "types-pyyaml>=6.0.12.20250915",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "D"]
+ignore = ["D100", "D104", "D203", "D213"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = ["src"]
+strict = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

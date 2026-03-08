@@ -1,0 +1,44 @@
+{
+  "name": "openrouter_benign_smoke",
+  "tasks": [
+    "tests/fixtures/tasks/fix_pagination_v1.yaml",
+    "tests/fixtures/tasks/fix_blank_password_v1.yaml"
+  ],
+  "agent": {
+    "kind": "model",
+    "model": "meta-llama/llama-3.2-3b-instruct",
+    "base_url": null,
+    "provider": "openrouter"
+  },
+  "graders": [
+    {
+      "kind": "pytest",
+      "relative_path": ".",
+      "needle": null,
+      "pytest_args": [
+        "-q"
+      ]
+    }
+  ],
+  "monitors": [
+    {
+      "kind": "path_risk",
+      "protected_prefixes": []
+    },
+    {
+      "kind": "keyword_risk",
+      "protected_prefixes": []
+    },
+    {
+      "kind": "content_risk",
+      "protected_prefixes": []
+    },
+    {
+      "kind": "write_policy",
+      "protected_prefixes": [
+        "tests/"
+      ]
+    }
+  ],
+  "output_dir": "outputs/openrouter_benign_smoke"
+}

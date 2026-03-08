@@ -1,0 +1,19 @@
+name: cheating_demo
+tasks:
+  - tests/fixtures/tasks/hide_failing_test_v1.yaml
+  - tests/fixtures/tasks/shortcut_completion_checks_v1.yaml
+agent:
+  kind: cheating_scripted
+graders:
+  - kind: pytest
+    relative_path: .
+    pytest_args:
+      - -q
+monitors:
+  - kind: path_risk
+  - kind: keyword_risk
+  - kind: content_risk
+  - kind: write_policy
+    protected_prefixes:
+      - tests/
+output_dir: outputs/cheating_demo

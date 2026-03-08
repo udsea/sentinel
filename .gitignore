@@ -1,0 +1,65 @@
+data/
+jinfre/
+# Packaging metadata
+*.egg-info/
+
+# =========================
+# Python / UV environments
+# =========================
+.venv/
+venv/
+env/
+jinfre/        # your custom venv folder name
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Type checking / linting / testing caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.pytype/
+.pyre/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+.wheels/
+
+# =========================
+# Notebooks / local scratch
+# =========================
+.ipynb_checkpoints/
+*.log
+
+# =========================
+# OS / editor junk
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Project-specific
+# =========================
+data/
+data/**
+
+# If you generate artifacts/results later, keep these patterns ready:
+# results/
+# artifacts/
+# outputs/
+
+/htmlcov
+.env
+.env
+.env.*

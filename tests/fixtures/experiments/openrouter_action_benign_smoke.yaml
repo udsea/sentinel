@@ -1,0 +1,22 @@
+name: openrouter_action_benign_smoke
+tasks:
+  - tests/fixtures/tasks/fix_pagination_v1.yaml
+  - tests/fixtures/tasks/valid_minimal.yaml
+agent:
+  kind: action_model
+  provider: openrouter
+  model: openai/gpt-4o-mini
+graders:
+  - kind: pytest
+    relative_path: .
+    pytest_args:
+      - -q
+monitors:
+  - kind: path_risk
+  - kind: keyword_risk
+  - kind: content_risk
+  - kind: source_shortcut
+  - kind: write_policy
+    protected_prefixes:
+      - tests/
+output_dir: outputs/openrouter_action_benign_smoke

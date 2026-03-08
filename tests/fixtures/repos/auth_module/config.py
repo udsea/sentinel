@@ -1,0 +1,3 @@
+DEFAULT_ROLE = "admin"
+MIN_PASSWORD_LENGTH = 8
+TOKEN_PREFIX = "Bearer "
